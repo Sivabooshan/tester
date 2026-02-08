@@ -11,7 +11,7 @@
 #  https://github.com/abusoww/tuxmate
 #
 #  Distribution: Arch Linux
-#  Packages: 34
+#  Packages: 37
 #
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -38,7 +38,7 @@ timing()  { echo -e "${GREEN}✓${NC} $1 ${DIM}($2s)${NC}"; }
 # Graceful exit on Ctrl+C
 trap 'printf "\n"; warn "Installation cancelled by user"; print_summary; exit 130' INT
 
-TOTAL=34
+TOTAL=37
 CURRENT=0
 FAILED=()
 SUCCEEDED=()
@@ -281,23 +281,26 @@ install_pacman "Ghostty" "ghostty"
 install_pacman "Starship" "starship"
 install_pacman "tmux" "tmux"
 install_pacman "gThumb" "gthumb"
-install_pacman "Japanese Fonts" "noto-fonts-cjk"
-install_pacman "Fcitx5 Framework" "fcitx5 fcitx5-gtk fcitx5-qt6 fcitx5-configtool"
+install_pacman "Fcitx5 Core" "fcitx5"
+install_pacman "Fcitx5 GTK" "fcitx5-gtk"
+install_pacman "Fcitx5 Qt6" "fcitx5-qt6"
+install_pacman "Fcitx5 Config" "fcitx5-configtool"
 install_pacman "Mozc Japanese IME" "fcitx5-mozc"
+install_pacman "Japanese Fonts" "noto-fonts-cjk"
 install_pacman "MKVToolNix GUI" "mkvtoolnix-gui"
-install_pacman "Hyprland Portal" "xdg-desktop-portal-hyprland xdg-desktop-portal-gtk"
+install_pacman "Hyprland Portal (Hyprland)" "xdg-desktop-portal-hyprland"
+install_pacman "Hyprland Portal (GTK)" "xdg-desktop-portal-gtk"
 
 checkpoint "Installing AUR packages (paru)"
 
 if command -v paru &>/dev/null; then
     install_aur "Zen Browser" "zen-browser-bin"
-    install_aur "ProtonUp-Qt" "protonup-qt-bin"
+    install_aur "ProtonUp-Qt" "protonup-qt"
     install_aur "Proton VPN" "proton-vpn-gtk-app"
     install_aur "LocalSend" "localsend-bin"
     install_aur "Bitwarden" "bitwarden"
     install_aur "YASP" "yasp"
     install_aur "Stacher7" "stacher7"
-    install_aur "ProtonUp-Qt" "protonup-qt"
     install_aur "Pomodoro" "gnome-shell-pomodoro"
     install_aur "ZapZap" "zapzap-git"
     install_aur "Music Presence" "music-presence-bin"
