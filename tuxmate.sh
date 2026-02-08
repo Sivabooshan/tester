@@ -229,25 +229,40 @@ while [ -f /var/lib/pacman/db.lck ]; do
 done
 
 checkpoint "Starting base setup (syncing pacman)"
+
 info "Syncing databases..."
 with_retry sudo pacman -Sy --noconfirm >/dev/null && success "Synced" || warn "Sync failed, continuing..."
 
 
 if ! command -v paru &>/dev/null; then
     warn "Installing paru for AUR packages..."
-    sudo pacman -S --needed --noconfirm git base-devel >/dev/null 2>&1
+    
+    sudo pacman -S --needed --noconfirm git base-devel
     tmp=$(mktemp -d)
-    git clone https://aur.archlinux.org/paru.git "$tmp/paru" >/dev/null 2>&1
-    (cd "$tmp/paru" && makepkg -si --noconfirm >/dev/null 2>&1)
+    
+    info "Cloning paru from AUR..."
+    git clone https://aur.archlinux.org/paru.git "$tmp/paru"
+    
+    info "Building paru (this takes ~2-5 min)..."
+    (cd "$tmp/paru" && makepkg -si --noconfirm)
+    
     rm -rf "$tmp"
-    command -v paru &>/dev/null && success "paru installed" || warn "paru install failed"
+    
+    if command -v paru &>/dev/null; then
+        success "paru installed successfully"
+    else
+        error "paru installation failed"
+        exit 1
+    fi
 fi
+
 
 echo
 info "Installing $TOTAL packages"
 echo
 
 checkpoint "Installing system applications (pacman)"
+
 install_pacman "Tor Browser" "torbrowser-launcher"
 install_pacman "Discord" "discord"
 install_pacman "Telegram" "telegram-desktop"
@@ -273,6 +288,7 @@ install_pacman "MKVToolNix GUI" "mkvtoolnix-gui"
 install_pacman "Hyprland Portal" "xdg-desktop-portal-hyprland xdg-desktop-portal-gtk"
 
 checkpoint "Installing AUR packages (paru)"
+
 if command -v paru &>/dev/null; then
     install_aur "Zen Browser" "zen-browser-bin"
     install_aur "ProtonUp-Qt" "protonup-qt-bin"
@@ -312,6 +328,7 @@ fi
 echo
 
 checkpoint "Final configuration (Hyprland)"
+
 if [ -d ~/.config/hypr ]; then
     echo "exec-once = /usr/lib/kdeconnectd" >> ~/.config/hypr/hyprland.conf
     echo "exec-once = xdg-desktop-portal-hyprland" >> ~/.config/hypr/hyprland.conf
