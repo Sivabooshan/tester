@@ -38,7 +38,7 @@ timing()  { echo -e "${GREEN}✓${NC} $1 ${DIM}($2s)${NC}"; }
 # Graceful exit on Ctrl+C
 trap 'printf "\n"; warn "Installation cancelled by user"; print_summary; exit 130' INT
 
-TOTAL=22
+TOTAL=34
 CURRENT=0
 FAILED=()
 SUCCEEDED=()
@@ -211,6 +211,14 @@ install_aur() {
     fi
 }
 
+checkpoint() {
+    local msg="$1"
+    local time_str
+    time_str=$(date +"%H:%M:%S")
+    echo -e "\n${CYAN}>>> [${time_str}] ${BOLD}${msg}${NC}\n"
+}
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 
 [ "$EUID" -eq 0 ] && { error "Run as regular user, not root."; exit 1; }
@@ -220,6 +228,7 @@ while [ -f /var/lib/pacman/db.lck ]; do
     sleep 2
 done
 
+checkpoint "Starting base setup (syncing pacman)"
 info "Syncing databases..."
 with_retry sudo pacman -Sy --noconfirm >/dev/null && success "Synced" || warn "Sync failed, continuing..."
 
@@ -238,6 +247,7 @@ echo
 info "Installing $TOTAL packages"
 echo
 
+checkpoint "Installing system applications (pacman)"
 install_pacman "Tor Browser" "torbrowser-launcher"
 install_pacman "Discord" "discord"
 install_pacman "Telegram" "telegram-desktop"
@@ -262,7 +272,7 @@ install_pacman "Mozc Japanese IME" "fcitx5-mozc"
 install_pacman "MKVToolNix GUI" "mkvtoolnix-gui"
 install_pacman "Hyprland Portal" "xdg-desktop-portal-hyprland xdg-desktop-portal-gtk"
 
-
+checkpoint "Installing AUR packages (paru)"
 if command -v paru &>/dev/null; then
     install_aur "Zen Browser" "zen-browser-bin"
     install_aur "ProtonUp-Qt" "protonup-qt-bin"
@@ -301,6 +311,7 @@ else
 fi
 echo
 
+checkpoint "Final configuration (Hyprland)"
 if [ -d ~/.config/hypr ]; then
     echo "exec-once = /usr/lib/kdeconnectd" >> ~/.config/hypr/hyprland.conf
     echo "exec-once = xdg-desktop-portal-hyprland" >> ~/.config/hypr/hyprland.conf
