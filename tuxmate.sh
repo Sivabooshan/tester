@@ -52,8 +52,8 @@ show_progress() {
   local percent=$((current * 100 / total))
   local filled=$((percent / 5))
   local empty=$((20 - filled))
+  if [ $empty -lt 1 ]; then empty=1; fi  # ← FIX: minimum width 1
   
-  # Calculate ETA
   local remaining=$((total - current))
   local eta=$((remaining * AVG_TIME))
   local eta_str=""
