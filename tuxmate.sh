@@ -290,7 +290,6 @@ install_pacman "Hyprland Portal (GTK)" "xdg-desktop-portal-gtk"
 install_pacman "Neovim" "neovim"
 install_pacman "Fastfetch" "fastfetch"
 install_pacman "Entr" "entr"
-install_pacman "Extension manager" "gnome-shell-extension-manager"
 
 checkpoint "Installing AUR packages (paru)"
 
