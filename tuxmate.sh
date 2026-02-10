@@ -64,9 +64,9 @@ show_progress() {
     fi
 
     printf "\r\033[K[${CYAN}"
-    printf "%${filled}s" | tr ' ' '█'
+    printf "%${filled}s" | tr ' ' '#'
     printf "${NC}"
-    printf "%${empty}s" | tr ' ' '░'
+    printf "%${empty}s" | tr ' ' '.'
     printf "] %3d%% (%d/%d) ${BOLD}%s${NC} ${DIM}%s left${NC}" "$percent" "$current" "$total" "$name" "$eta_str"
 }
 
