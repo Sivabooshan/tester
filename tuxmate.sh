@@ -291,6 +291,7 @@ install_pacman "Hyprland Portal (GTK)" "xdg-desktop-portal-gtk"
 install_pacman "Neovim" "neovim"
 install_pacman "Fastfetch" "fastfetch"
 install_pacman "Entr" "entr"
+install_pacman "Extension manager" "gnome-shell-extension-manager"
 
 checkpoint "Installing AUR packages (paru)"
 
@@ -322,6 +323,12 @@ if ! grep -q "fcitx" ~/.pam_environment 2>/dev/null; then
 else
   skip "Japanese input environment (already configured)"
 fi
+
+install_pacman "Flatpak" "flatpak"
+with_retry flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+with_retry flatpak install -y flathub com.mattjakeman.ExtensionManager
+
+success "Extension Manager ready! flatpak run com.mattjakeman.ExtensionManager"
 
 if fc-cache -fv >/dev/null 2>&1; then
   success "Font cache refreshed"
