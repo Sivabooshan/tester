@@ -11,7 +11,7 @@
 #  https://github.com/abusoww/tuxmate
 #
 #  Distribution: Arch Linux
-#  Packages: 38
+#  Packages: 37
 #
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -38,7 +38,7 @@ timing() { echo -e "${GREEN}✓${NC} $1 ${DIM}($2s)${NC}"; }
 # Graceful exit on Ctrl+C
 trap 'printf "\n"; warn "Installation cancelled by user"; print_summary; exit 130' INT
 
-TOTAL=38
+TOTAL=37
 CURRENT=0
 FAILED=()
 SUCCEEDED=()
