@@ -52,22 +52,23 @@ show_progress() {
   local percent=$((current * 100 / total))
   local filled=$((percent / 5))
   local empty=$((20 - filled))
-
+  
   # Calculate ETA
   local remaining=$((total - current))
   local eta=$((remaining * AVG_TIME))
   local eta_str=""
   if [ $eta -ge 60 ]; then
-    eta_str="~$((eta / 60))m"
+      eta_str="~$((eta / 60))m"
   else
-    eta_str="~${eta}s"
+      eta_str="~${eta}s"
   fi
-
-  printf "\r\033[K[${CYAN}"
-  printf "%${filled}s" | tr ' ' '█'
-  printf "${NC}"
-  printf "%${empty}s" | tr ' ' '░'
-  printf "] %3d%% (%d/%d) ${BOLD}%s${NC} ${DIM}%s left${NC}" "$percent" "$current" "$total" "$name" "$eta_str"
+  
+  local sp="/-\\|"
+  printf "\r\033[K${CYAN}[%s%s%s]${NC} %d/%d ${BOLD}%s${NC} %s" \
+      "$(printf '#%.0s' $(seq 1 $filled))" \
+      "${sp:$((current%4)):1}" \
+      "$(printf '-%.0s' $(seq 1 $empty))" \
+      "$current" "$total" "$name" "${eta_str}"
 }
 
 # Update average install time
