@@ -211,8 +211,6 @@ install_aur() {
   fi
 }
 
-checkpoint "Installing GNOME Shell extensions"
-
 install_gnome_ext() {
   local name=$1 func=$2
   EXT_CURRENT=$((EXT_CURRENT + 1))
