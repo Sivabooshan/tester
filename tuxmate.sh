@@ -162,11 +162,11 @@ install_pacman() {
   if is_installed "$pkg"; then
     skip "$name"
     SKIPPED+=("$name")
-    show_progress "$PACMAN_CURRENT" "$PACMAN_TOTAL" "$name" "PACMAN"
+    PACMAN_CURRENT=$((PACMAN_CURRENT + 1))
     return 0
   fi
   PACMAN_CURRENT=$((PACMAN_CURRENT + 1))  # Use section counter
-  show_progress "$PACMAN_CURRENT" "$PACMAN_TOTAL" "$name" "PACMAN"
+  show_progress "$PACMAN_CURRENT" "$PACMAN_TOTAL" "$name"
   local start=$(date +%s)
 
   local output
@@ -193,13 +193,13 @@ install_aur() {
   if is_installed "$pkg"; then
     skip "$name"
     SKIPPED+=("$name")
-    show_progress "$AUR_CURRENT" "$AUR_TOTAL" "$name" "AUR"
+    AUR_CURRENT=$((AUR_CURRENT + 1))
     return 0
   fi
   
   AUR_CURRENT=$((AUR_CURRENT + 1))
   
-  show_progress "$AUR_CURRENT" "$AUR_TOTAL" "$name" "AUR"
+  show_progress "$AUR_CURRENT" "$AUR_TOTAL" "$name"
   local start=$(date +%s)
 
   local output
@@ -223,31 +223,33 @@ install_gnome_ext() {
   
   # Skip if already installed (ALL 6 extensions)
   if [[ "$name" == "Blur My Shell" && -d ~/.local/share/gnome-shell/extensions/blur-my-shell@aunetx ]] ||
-    [[ "$name" == "Clipboard Indicator" && -d ~/.local/share/gnome-shell/extensions/clipboard-indicator@tudmotu.com ]] ||
-    [[ "$name" == "AppIndicator Support" && -d ~/.local/share/gnome-shell/extensions/appindicatorsupport@rgcjonas.gmail.com ]] ||
-    [[ "$name" == "Internet Speed Meter" && -d ~/.local/share/gnome-shell/extensions/InternetSpeedMeter@Shakib ]] ||
-    [[ "$name" == "Weekly Commits" && -d ~/.local/share/gnome-shell/extensions/weekly-commits@funinkina.is-a.dev ]] ||
-    [[ "$name" == "Kimpanel" && -d ~/.local/share/gnome-shell/extensions/kimpanel@keyboard-input-method ]]; then
-  skip "$name (already installed)"
-  SKIPPED+=("$name")
-  return 0
+     [[ "$name" == "Clipboard Indicator" && -d ~/.local/share/gnome-shell/extensions/clipboard-indicator@tudmotu.com ]] ||
+     [[ "$name" == "AppIndicator Support" && -d ~/.local/share/gnome-shell/extensions/appindicatorsupport@rgcjonas.gmail.com ]] ||
+     [[ "$name" == "Internet Speed Meter" && -d ~/.local/share/gnome-shell/extensions/InternetSpeedMeter@Shakib ]] ||
+     [[ "$name" == "Weekly Commits" && -d ~/.local/share/gnome-shell/extensions/weekly-commits@funinkina.is-a.dev ]] ||
+     [[ "$name" == "Kimpanel" && -d ~/.local/share/gnome-shell/extensions/kimpanel@keyboard-input-method ]]; then
+    skip "$name (already installed)"
+    SKIPPED+=("$name")
+    EXT_CURRENT=$((EXT_CURRENT + 1))  # ← INCREMENT AFTER SKIP
+    return 0
   fi
   
-  EXT_CURRENT=$((EXT_CURRENT + 1))
+  EXT_CURRENT=$((EXT_CURRENT + 1))     # Increment only for installs
   
   show_progress "$EXT_CURRENT" "$EXT_TOTAL" "$name" "EXT"
   local start=$(date +%s)
   
   if output=$(with_retry bash -c "$func"); then
     local elapsed=$(($(date +%s) - start))
-    printf "\\r\\033[K"
+    printf "\r\033[K"                    # ← FIXED ANSI
     timing "$name" "$elapsed"
     SUCCEEDED+=("$name")
   else
-    printf "\\r\\033[K${RED}✗${NC} %s\\n" "$name"
+    printf "\r\033[K${RED}✗${NC} %s\n"  # ← FIXED ANSI
     FAILED+=("$name")
   fi
 }
+
 
 checkpoint() {
   local msg="$1"
