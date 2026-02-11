@@ -158,7 +158,6 @@ is_installed() { pacman -Qi "$1" &>/dev/null; }
 
 install_pacman() {
   local name=$1 pkg=$2
-  PACMAN_CURRENT=$((PACMAN_CURRENT + 1))  # Use section counter
   
   if is_installed "$pkg"; then
     skip "$name"
@@ -166,7 +165,7 @@ install_pacman() {
     show_progress "$PACMAN_CURRENT" "$PACMAN_TOTAL" "$name" "PACMAN"
     return 0
   fi
-
+  PACMAN_CURRENT=$((PACMAN_CURRENT + 1))  # Use section counter
   show_progress "$PACMAN_CURRENT" "$PACMAN_TOTAL" "$name" "PACMAN"
   local start=$(date +%s)
 
@@ -190,7 +189,6 @@ install_pacman() {
 
 install_aur() {
   local name=$1 pkg=$2
-  AUR_CURRENT=$((AUR_CURRENT + 1))
   
   if is_installed "$pkg"; then
     skip "$name"
@@ -198,6 +196,8 @@ install_aur() {
     show_progress "$AUR_CURRENT" "$AUR_TOTAL" "$name" "AUR"
     return 0
   fi
+  
+  AUR_CURRENT=$((AUR_CURRENT + 1))
   
   show_progress "$AUR_CURRENT" "$AUR_TOTAL" "$name" "AUR"
   local start=$(date +%s)
@@ -220,7 +220,6 @@ install_aur() {
 
 install_gnome_ext() {
   local name=$1 func=$2
-  EXT_CURRENT=$((EXT_CURRENT + 1))
   
   # Skip if already installed (ALL 6 extensions)
   if [[ "$name" == "Blur My Shell" && -d ~/.local/share/gnome-shell/extensions/blur-my-shell@aunetx ]] ||
@@ -232,7 +231,9 @@ install_gnome_ext() {
   skip "$name (already installed)"
   SKIPPED+=("$name")
   return 0
-fi
+  fi
+  
+  EXT_CURRENT=$((EXT_CURRENT + 1))
   
   show_progress "$EXT_CURRENT" "$EXT_TOTAL" "$name" "EXT"
   local start=$(date +%s)
