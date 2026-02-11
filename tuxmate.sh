@@ -416,7 +416,7 @@ install_gnome_ext "Internet Speed Meter" 'tmpdir=$(mktemp -d) && (cd "$tmpdir" &
 
 install_gnome_ext "Weekly Commits" 'mkdir -p ~/.local/share/gnome-shell/extensions && tmpdir=$(mktemp -d) && (cd "$tmpdir" && git clone https://github.com/funinkina/weekly-commits.git && mv weekly-commits ~/.local/share/gnome-shell/extensions/weekly-commits@funinkina.is-a.dev && rm -rf "$tmpdir")'
 
-install_gnome_ext "AppIndicator Support" 'tmpdir=$(mktemp -d) && (cd "$tmpdir" && git clone https://github.com/ubuntu/gnome-shell-extension-appindicator.git && meson gnome-shell-extension-appindicator /tmp/g-s-appindicators-build && ninja -C /tmp/g-s-appindicators-build install && rm -rf "$tmpdir" /tmp/g-s-appindicators-build)'
+install_gnome_ext "AppIndicator Support" 'tmpdir=$(mktemp -d) && (cd "$tmpdir" && git clone https://github.com/ubuntu/gnome-shell-extension-appindicator.git && cd gnome-shell-extension-appindicator && meson setup --reconfigure -Deslint=false . /tmp/g-s-appindicators-build && ninja -C /tmp/g-s-appindicators-build install && rm -rf "$tmpdir" /tmp/g-s-appindicators-build)'
 
 install_gnome_ext "Kimpanel" 'tmpdir=$(mktemp -d) && (cd "$tmpdir" && git clone https://github.com/wengxt/gnome-shell-extension-kimpanel.git && cd gnome-shell-extension-kimpanel && ./install.sh && rm -rf "$tmpdir")'
 
