@@ -380,10 +380,8 @@ checkpoint "Installing GNOME Shell extensions"
 mkdir -p ~/.local/share/gnome-shell/extensions
 
 install_gnome_ext() {
-  local name=$1
-  local cmd=$2
+  local name=$1 func=$2
   CURRENT=$((CURRENT + 1))
-
   if [ -n "${failed_ext+set}" ]; then
     return 0
   fi
@@ -392,7 +390,7 @@ install_gnome_ext() {
   local start=$(date +%s)
 
   local output
-  if output=$(with_retry bash -c "$cmd"); then
+  if output=$(with_retry bash -c "$func"); then
     local elapsed=$(($(date +%s) - start))
     update_avg_time $elapsed
     printf "\\r\\033[K"
@@ -461,7 +459,7 @@ install_gnome_ext "Weekly Commits" '
   which gnome-extensions &>/dev/null && gnome-extensions enable weekly-commits@funinkina.is-a.dev
 '
 
-install_gnome_ext "AppIndicator Support (KStatusNotifierItem)" '
+install_gnome_ext "AppIndicator Support" '
   mkdir -p ~/.local/share/gnome-shell/extensions
   tmpdir=$(mktemp -d)
   builddir=/tmp/g-s-appindicators-build
@@ -490,5 +488,6 @@ install_gnome_ext "Kimpanel" '
 '
 
 unset failed_ext
+
 
 print_summary
