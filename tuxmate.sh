@@ -336,6 +336,37 @@ else
 fi
 echo
 
+checkpoint "Installing GNOME Shell Pomodoro (manual build)"
+
+if is_installed "gnome-shell-pomodoro"; then
+  skip "GNOME Shell Pomodoro"
+  SKIPPED+=("GNOME Shell Pomodoro")
+else
+  CURRENT=$((CURRENT + 1))
+  show_progress $CURRENT $TOTAL "GNOME Shell Pomodoro"
+
+  local name="GNOME Shell Pomodoro"
+  local start=$(date +%s)
+
+  local output
+  if output=$(with_retry bash -c 'cd /tmp || exit
+    rm -rf gnome-shell-pomodoro 2>/dev/null
+    git clone https://aur.archlinux.org/gnome-shell-pomodoro.git gnome-shell-pomodoro
+    cd gnome-shell-pomodoro
+    makepkg -si --noconfirm && rm -rf /tmp/gnome-shell-pomodoro
+  '); then
+    local elapsed=$(($(date +%s) - start))
+    update_avg_time $elapsed
+    printf "\\r\\033[K"
+    timing "$name" "$elapsed"
+    SUCCEEDED+=("$name")
+  else
+    printf "\\r\\033[K${RED}✗${NC} %s\\n" "$name"
+    echo "$output"
+    FAILED+=("$name")
+  fi
+fi
+
 checkpoint "Final configuration (Hyprland)"
 
 if [ -d ~/.config/hypr ]; then
