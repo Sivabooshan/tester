@@ -54,27 +54,20 @@ EXT_CURRENT=0
 AVG_TIME=8 # Initial estimate: 8 seconds per package
 
 show_progress() {
-    local current=$1 total=$2 name=$3
-    local percent=$((current * 100 / total))
+    local current=$1 total=$2 name=$3 section=${4:-""}
+    local percent=$((current * 100 / (total > 0 ? total : 1)))  # Prevent div/0
     local filled=$((percent / 5))
     local empty=$((20 - filled))
-
-    # Calculate ETA
     local remaining=$((total - current))
     local eta=$((remaining * AVG_TIME))
-    local eta_str=""
-    if [ $eta -ge 60 ]; then
-        eta_str="~$((eta / 60))m"
-    else
-        eta_str="~${eta}s"
-    fi
+    local eta_str=$([ $eta -ge 60 ] && echo "~$((eta / 60))m" || echo "~${eta}s")
 
-    printf "\r\033[K[${CYAN}"
+    printf "\\r\\033[K[${CYAN}%s${NC}] " "$section"
     printf "%${filled}s" | tr ' ' '#'
-    printf "${NC}"
     printf "%${empty}s" | tr ' ' '.'
-    printf "] %3d%% (%d/%d) ${BOLD}%s${NC} ${DIM}%s left${NC}" "$percent" "$current" "$total" "$name" "$eta_str"
+    printf "] %3d%% (%d/%d) ${BOLD}%s${NC} ${DIM}%s${NC}" "$percent" "$current" "$total" "$name" "$eta_str"
 }
+
 
 # Update average install time
 update_avg_time() {
