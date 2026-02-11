@@ -377,17 +377,11 @@ fi
 
 checkpoint "Installing GNOME Shell extensions"
 
-# Make sure needed tools are there
-install_pacman "GNOME Shell (extensions)" "gnome-shell"
-install_pacman "Meson" "meson"
-install_pacman "Ninja" "ninja"
-
-
-failed_ext=""
+mkdir -p ~/.local/share/gnome-shell/extensions
 
 install_gnome_ext() {
   local name=$1
-  local func=$2
+  local cmd=$2
   CURRENT=$((CURRENT + 1))
 
   if [ -n "${failed_ext+set}" ]; then
@@ -398,7 +392,7 @@ install_gnome_ext() {
   local start=$(date +%s)
 
   local output
-  if output=$(with_retry bash -c "$func"); then
+  if output=$(with_retry bash -c "$cmd"); then
     local elapsed=$(($(date +%s) - start))
     update_avg_time $elapsed
     printf "\\r\\033[K"
@@ -412,7 +406,8 @@ install_gnome_ext() {
   fi
 }
 
-# BLUR MY SHELL
+failed_ext=""
+
 install_gnome_ext "Blur My Shell" '
   mkdir -p ~/.local/share/gnome-shell/extensions
   tmpdir=$(mktemp -d)
@@ -427,7 +422,6 @@ install_gnome_ext "Blur My Shell" '
   which gnome-extensions &>/dev/null && gnome-extensions enable blur-my-shell@aunetx.fr
 '
 
-# CLIPBOARD INDICATOR
 install_gnome_ext "Clipboard Indicator" '
   mkdir -p ~/.local/share/gnome-shell/extensions
   tmpdir=$(mktemp -d)
@@ -441,7 +435,6 @@ install_gnome_ext "Clipboard Indicator" '
   which gnome-extensions &>/dev/null && gnome-extensions enable clipboard-indicator@tudmotu.com
 '
 
-# INTERNET SPEED METER
 install_gnome_ext "Internet Speed Meter" '
   tmpdir=$(mktemp -d)
   (
@@ -455,7 +448,6 @@ install_gnome_ext "Internet Speed Meter" '
   which gnome-extensions &>/dev/null && gnome-extensions enable InternetSpeedMeter@AlShakib
 '
 
-# WEEKLY COMMITS
 install_gnome_ext "Weekly Commits" '
   mkdir -p ~/.local/share/gnome-shell/extensions
   tmpdir=$(mktemp -d)
@@ -469,7 +461,6 @@ install_gnome_ext "Weekly Commits" '
   which gnome-extensions &>/dev/null && gnome-extensions enable weekly-commits@funinkina.is-a.dev
 '
 
-# APPINDICATOR SUPPORT
 install_gnome_ext "AppIndicator Support (KStatusNotifierItem)" '
   mkdir -p ~/.local/share/gnome-shell/extensions
   tmpdir=$(mktemp -d)
@@ -485,7 +476,6 @@ install_gnome_ext "AppIndicator Support (KStatusNotifierItem)" '
   which gnome-extensions &>/dev/null && gnome-extensions enable appindicatorsupport@rgcjonas.gmail.com
 '
 
-# KIMPANEL
 install_gnome_ext "Kimpanel" '
   tmpdir=$(mktemp -d)
   (
@@ -500,6 +490,5 @@ install_gnome_ext "Kimpanel" '
 '
 
 unset failed_ext
-
 
 print_summary
