@@ -38,7 +38,7 @@ timing() { echo -e "${GREEN}✓${NC} $1 ${DIM}($2s)${NC}"; }
 # Graceful exit on Ctrl+C
 trap 'printf "\n"; warn "Installation cancelled by user"; print_summary; exit 130' INT
 
-TOTAL=38
+TOTAL=0
 CURRENT=0
 FAILED=()
 SUCCEEDED=()
@@ -262,6 +262,8 @@ echo
 
 checkpoint "Installing system applications (pacman)"
 
+TOTAL=35
+
 install_pacman "Tor Browser" "torbrowser-launcher"
 install_pacman "Discord" "discord"
 install_pacman "Telegram" "telegram-desktop"
@@ -291,8 +293,16 @@ install_pacman "Neovim" "neovim"
 install_pacman "Fastfetch" "fastfetch"
 install_pacman "Entr" "entr"
 install_pacman "Hyprland" "hyprland"
+install_pacman "Flatpak" "flatpak"
+install_pacman "Build Essentials" "base-devel"
+install_pacman "CMake" "cmake"
+install_pacman "jq" "jq"
+install_pacman "Zip" "zip"
+install_pacman "Gettext" "gettext"
 
 checkpoint "Installing AUR packages (paru)"
+
+TOTAL=9
 
 if command -v paru &>/dev/null; then
   install_aur "Zen Browser" "zen-browser-bin"
@@ -377,8 +387,7 @@ fi
 
 checkpoint "Installing GNOME Shell extensions"
 
-# Increase TOTAL for 6 extensions
-TOTAL=$((TOTAL + 6))
+TOTAL=6
 
 install_gnome_ext() {
   local name=$1 func=$2
