@@ -256,35 +256,6 @@ if ! command -v paru &>/dev/null; then
   fi
 fi
 
-checkpoint "Installing GNOME Shell extensions"
-
-install_gnome_ext() {
-  local name=$1
-  local func=$2
-  CURRENT=$((CURRENT + 1))
-
-  if [ -n "${failed_ext+set}" ]; then
-    return 0
-  fi
-
-  show_progress $CURRENT $TOTAL "$name"
-  local start=$(date +%s)
-
-  local output
-  if output=$(with_retry bash -c "$func"); then
-    local elapsed=$(($(date +%s) - start))
-    update_avg_time $elapsed
-    printf "\\r\\033[K"
-    timing "$name" "$elapsed"
-    SUCCEEDED+=("$name")
-  else
-    printf "\\r\\033[K${RED}✗${NC} %s\\n" "$name"
-    echo "$output"
-    FAILED+=("$name")
-    failed_ext=1
-  fi
-}
-
 echo
 info "Installing $TOTAL packages"
 echo
@@ -404,8 +375,42 @@ if [ -d ~/.config/hypr ]; then
   success "Hyprland KDE Connect configured"
 fi
 
+checkpoint "Installing GNOME Shell extensions"
+
+# Make sure needed tools are there
+install_pacman "GNOME Shell (extensions)" "gnome-shell"
+install_pacman "Meson build tools" "meson ninja"
+
 failed_ext=""
 
+install_gnome_ext() {
+  local name=$1
+  local func=$2
+  CURRENT=$((CURRENT + 1))
+
+  if [ -n "${failed_ext+set}" ]; then
+    return 0
+  fi
+
+  show_progress $CURRENT $TOTAL "$name"
+  local start=$(date +%s)
+
+  local output
+  if output=$(with_retry bash -c "$func"); then
+    local elapsed=$(($(date +%s) - start))
+    update_avg_time $elapsed
+    printf "\\r\\033[K"
+    timing "$name" "$elapsed"
+    SUCCEEDED+=("$name")
+  else
+    printf "\\r\\033[K${RED}✗${NC} %s\\n" "$name"
+    echo "$output"
+    FAILED+=("$name")
+    failed_ext=1
+  fi
+}
+
+# BLUR MY SHELL
 install_gnome_ext "Blur My Shell" '
   mkdir -p ~/.local/share/gnome-shell/extensions
   tmpdir=$(mktemp -d)
@@ -417,9 +422,10 @@ install_gnome_ext "Blur My Shell" '
   )
   rm -rf "$tmpdir"
   sleep 1
-  gnome-extensions enable blur-my-shell@aunetx.fr
+  which gnome-extensions &>/dev/null && gnome-extensions enable blur-my-shell@aunetx.fr
 '
 
+# CLIPBOARD INDICATOR
 install_gnome_ext "Clipboard Indicator" '
   mkdir -p ~/.local/share/gnome-shell/extensions
   tmpdir=$(mktemp -d)
@@ -430,10 +436,10 @@ install_gnome_ext "Clipboard Indicator" '
   )
   rm -rf "$tmpdir"
   sleep 1
-  which gnome-extensions &>/dev/null && \
-    gnome-extensions enable clipboard-indicator@tudmotu.com
+  which gnome-extensions &>/dev/null && gnome-extensions enable clipboard-indicator@tudmotu.com
 '
 
+# INTERNET SPEED METER
 install_gnome_ext "Internet Speed Meter" '
   tmpdir=$(mktemp -d)
   (
@@ -444,10 +450,10 @@ install_gnome_ext "Internet Speed Meter" '
   )
   rm -rf "$tmpdir"
   sleep 1
-  which gnome-extensions &>/dev/null && \
-    gnome-extensions enable InternetSpeedMeter@AlShakib
+  which gnome-extensions &>/dev/null && gnome-extensions enable InternetSpeedMeter@AlShakib
 '
 
+# WEEKLY COMMITS
 install_gnome_ext "Weekly Commits" '
   mkdir -p ~/.local/share/gnome-shell/extensions
   tmpdir=$(mktemp -d)
@@ -458,10 +464,10 @@ install_gnome_ext "Weekly Commits" '
   )
   rm -rf "$tmpdir"
   sleep 1
-  which gnome-extensions &>/dev/null && \
-    gnome-extensions enable weekly-commits@funinkina.is-a.dev
+  which gnome-extensions &>/dev/null && gnome-extensions enable weekly-commits@funinkina.is-a.dev
 '
 
+# APPINDICATOR SUPPORT
 install_gnome_ext "AppIndicator Support (KStatusNotifierItem)" '
   mkdir -p ~/.local/share/gnome-shell/extensions
   tmpdir=$(mktemp -d)
@@ -474,10 +480,10 @@ install_gnome_ext "AppIndicator Support (KStatusNotifierItem)" '
   )
   rm -rf "$tmpdir" "$builddir"
   sleep 1
-  which gnome-extensions &>/dev/null && \
-    gnome-extensions enable appindicatorsupport@rgcjonas.gmail.com
+  which gnome-extensions &>/dev/null && gnome-extensions enable appindicatorsupport@rgcjonas.gmail.com
 '
 
+# KIMPANEL
 install_gnome_ext "Kimpanel" '
   tmpdir=$(mktemp -d)
   (
@@ -488,10 +494,10 @@ install_gnome_ext "Kimpanel" '
   )
   rm -rf "$tmpdir"
   sleep 1
-  which gnome-extensions &>/dev/null && \
-    gnome-extensions enable kimpanel@global
+  which gnome-extensions &>/dev/null && gnome-extensions enable kimpanel@global
 '
 
 unset failed_ext
+
 
 print_summary
