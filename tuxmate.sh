@@ -221,7 +221,6 @@ install_aur() {
 install_gnome_ext() {
   local name=$1 func=$2
   
-  # Skip if already installed (ALL 6 extensions)
   if [[ "$name" == "Blur My Shell" && -d ~/.local/share/gnome-shell/extensions/blur-my-shell@aunetx ]] ||
      [[ "$name" == "Clipboard Indicator" && -d ~/.local/share/gnome-shell/extensions/clipboard-indicator@tudmotu.com ]] ||
      [[ "$name" == "AppIndicator Support" && -d ~/.local/share/gnome-shell/extensions/appindicatorsupport@rgcjonas.gmail.com ]] ||
@@ -230,26 +229,25 @@ install_gnome_ext() {
      [[ "$name" == "Kimpanel" && -d ~/.local/share/gnome-shell/extensions/kimpanel@keyboard-input-method ]]; then
     skip "$name (already installed)"
     SKIPPED+=("$name")
-    EXT_CURRENT=$((EXT_CURRENT + 1))  # ← INCREMENT AFTER SKIP
+    EXT_CURRENT=$((EXT_CURRENT + 1))
     return 0
   fi
   
-  EXT_CURRENT=$((EXT_CURRENT + 1))     # Increment only for installs
-  
+  EXT_CURRENT=$((EXT_CURRENT + 1))
   show_progress "$EXT_CURRENT" "$EXT_TOTAL" "$name" "EXT"
   local start=$(date +%s)
   
   if output=$(with_retry bash -c "$func"); then
     local elapsed=$(($(date +%s) - start))
-    printf "\r\033[K"                    # ← FIXED ANSI
+    printf "\r\033[K"                    # Clear progress bar only
     timing "$name" "$elapsed"
     SUCCEEDED+=("$name")
   else
-    printf "\r\033[K${RED}✗${NC} %s\n"  # ← FIXED ANSI
+    printf "\n${RED}✗${NC} $name\n"      # ← NEW LINE + full name
+    echo "  ${DIM}Failed: $output${NC}"
     FAILED+=("$name")
   fi
 }
-
 
 checkpoint() {
   local msg="$1"
