@@ -377,6 +377,9 @@ fi
 
 checkpoint "Installing GNOME Shell extensions"
 
+# Increase TOTAL for 6 extensions
+TOTAL=$((TOTAL + 6))
+
 install_gnome_ext() {
   local name=$1 func=$2
   CURRENT=$((CURRENT + 1))
