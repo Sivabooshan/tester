@@ -45,6 +45,12 @@ SUCCEEDED=()
 SKIPPED=()
 INSTALL_TIMES=()
 START_TIME=$(date +%s)
+PACMAN_TOTAL=0 
+PACMAN_CURRENT=0
+AUR_TOTAL=0 
+AUR_CURRENT=0  
+EXT_TOTAL=0 
+EXT_CURRENT=0
 AVG_TIME=8 # Initial estimate: 8 seconds per package
 
 show_progress() {
@@ -416,7 +422,7 @@ install_gnome_ext "Internet Speed Meter" 'tmpdir=$(mktemp -d) && (cd "$tmpdir" &
 
 install_gnome_ext "Weekly Commits" 'mkdir -p ~/.local/share/gnome-shell/extensions && tmpdir=$(mktemp -d) && (cd "$tmpdir" && git clone https://github.com/funinkina/weekly-commits.git && mv weekly-commits ~/.local/share/gnome-shell/extensions/weekly-commits@funinkina.is-a.dev && rm -rf "$tmpdir")'
 
-install_gnome_ext "AppIndicator Support" 'tmpdir=$(mktemp -d) && (cd "$tmpdir" && git clone https://github.com/ubuntu/gnome-shell-extension-appindicator.git && cd gnome-shell-extension-appindicator && meson setup --reconfigure -Deslint=false . /tmp/g-s-appindicators-build && ninja -C /tmp/g-s-appindicators-build install && rm -rf "$tmpdir" /tmp/g-s-appindicators-build)'
+install_gnome_ext "AppIndicator Support" 'tmpdir=$(mktemp -d) && cd "$tmpdir" && git clone https://github.com/ubuntu/gnome-shell-extension-appindicator.git && cd gnome-shell-extension-appindicator && sed -i "s/CHARSET=UTF-8/g" locale/it.po || true && meson setup . /tmp/g-s-appindicators-build && ninja -C /tmp/g-s-appindicators-build install && rm -rf "$tmpdir" /tmp/g-s-appindicators-build'
 
 install_gnome_ext "Kimpanel" 'tmpdir=$(mktemp -d) && (cd "$tmpdir" && git clone https://github.com/wengxt/gnome-shell-extension-kimpanel.git && cd gnome-shell-extension-kimpanel && ./install.sh && rm -rf "$tmpdir")'
 
