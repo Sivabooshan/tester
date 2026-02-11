@@ -45,11 +45,11 @@ SUCCEEDED=()
 SKIPPED=()
 INSTALL_TIMES=()
 START_TIME=$(date +%s)
-PACMAN_TOTAL=0 
+PACMAN_TOTAL=35
 PACMAN_CURRENT=0
-AUR_TOTAL=0 
+AUR_TOTAL=9
 AUR_CURRENT=0  
-EXT_TOTAL=0 
+EXT_TOTAL=6
 EXT_CURRENT=0
 AVG_TIME=8 # Initial estimate: 8 seconds per package
 
@@ -196,7 +196,7 @@ install_aur() {
     SKIPPED+=("$name")
     return 0
   fi
-
+  
   show_progress $CURRENT $TOTAL "$name"
   local start=$(date +%s)
 
@@ -212,6 +212,37 @@ install_aur() {
     if echo "$output" | grep -q "target not found"; then
       echo -e "    ${DIM}Package not found in AUR${NC}"
     fi
+    FAILED+=("$name")
+  fi
+}
+
+install_gnome_ext() {
+  local name=$1 func=$2
+  EXT_CURRENT=$((EXT_CURRENT + 1))
+  
+# Skip if already installed (ALL 6 extensions)
+if [[ "$name" == "Blur My Shell" && -d ~/.local/share/gnome-shell/extensions/blur-my-shell@aunetx ]] ||
+   [[ "$name" == "Clipboard Indicator" && -d ~/.local/share/gnome-shell/extensions/clipboard-indicator@tudmotu.com ]] ||
+   [[ "$name" == "AppIndicator Support" && -d ~/.local/share/gnome-shell/extensions/appindicatorsupport@rgcjonas.gmail.com ]] ||
+   [[ "$name" == "Internet Speed Meter" && -d ~/.local/share/gnome-shell/extensions/InternetSpeedMeter@Shakib ]] ||
+   [[ "$name" == "Weekly Commits" && -d ~/.local/share/gnome-shell/extensions/weekly-commits@funinkina.is-a.dev ]] ||
+   [[ "$name" == "Kimpanel" && -d ~/.local/share/gnome-shell/extensions/kimpanel@keyboard-input-method ]]; then
+  skip "$name (already installed)"
+  SKIPPED+=("$name")
+  return 0
+fi
+
+  
+  show_progress "$EXT_CURRENT" "$EXT_TOTAL" "$name"
+  local start=$(date +%s)
+  
+  if output=$(with_retry bash -c "$func"); then
+    local elapsed=$(($(date +%s) - start))
+    printf "\\r\\033[K"
+    timing "$name" "$elapsed"
+    SUCCEEDED+=("$name")
+  else
+    printf "\\r\\033[K${RED}✗${NC} %s\\n" "$name"
     FAILED+=("$name")
   fi
 }
@@ -391,77 +422,15 @@ if [ -d ~/.config/hypr ]; then
   success "Hyprland KDE Connect configured"
 fi
 
-gnome_ext_installed() {
-  local uuid=$1
-  [ -d ~/.local/share/gnome-shell/extensions/"$uuid" ]
-}
+checkpoint "Installing GNOME Shell extensions"
 
-install_gnome_ext() {
-  local name=$1 uuid=$2 func=$3
-  EXT_CURRENT=$((EXT_CURRENT + 1))
-  
-  # Extract UUID from name or use hardcoded
-  if [[ "$name" == *"Clipboard"* ]]; then uuid="clipboard-indicator@tudmotu.com"
-  elif [[ "$name" == *"AppIndicator"* ]]; then uuid="appindicatorsupport@rgcjonas.gmail.com"  
-  elif [[ "$name" == *"Blur"* ]]; then uuid="blur-my-shell@aunetx"
-  elif [[ "$name" == *"Speed"* ]]; then uuid="InternetSpeedMeter@Shakib"  # adjust as needed
-  elif [[ "$name" == *"Weekly"* ]]; then uuid="weekly-commits@funinkina.is-a.dev"
-  elif [[ "$name" == *"Kimpanel"* ]]; then uuid="kimpanel@keyboard-input-method"; fi
-  
-  if gnome_ext_installed "$uuid"; then
-    skip "$name"
-    SKIPPED+=("$name")
-    show_progress "$EXT_CURRENT" "$EXT_TOTAL" "$name" "EXT"
-    return 0
-  fi
-  
-  show_progress "$EXT_CURRENT" "$EXT_TOTAL" "$name" "EXT"
-  local start=$(date +%s)
-  
-  if output=$(with_retry bash -c "$func" 2>&1); then
-    local elapsed=$(($(date +%s) - start))
-    update_avg_time $elapsed
-    printf "\\r\\033[K"
-    timing "$name" "$elapsed"
-    SUCCEEDED+=("$name")
-  else
-    printf "\\r\\033[K${RED}✗${NC} %s\\n" "$name"
-    echo "$output"
-    FAILED+=("$name")
-  fi
-}
+# CLEAN PATHS - Copy these 6 lines exactly:
+install_gnome_ext "Blur My Shell" 'mkdir -p ~/.local/share/gnome-shell/extensions && tmpdir=$(mktemp -d) && cd "$tmpdir" && git clone https://github.com/aunetx/blur-my-shell && cd blur-my-shell && make install SHELL_VERSION_OVERRIDE="" && rm -rf "$tmpdir"'
+install_gnome_ext "Clipboard Indicator" 'rm -rf ~/.local/share/gnome-shell/extensions/clipboard-indicator@tudmotu.com && mkdir -p ~/.local/share/gnome-shell/extensions && tmpdir=$(mktemp -d) && cd "$tmpdir" && git clone https://github.com/Tudmotu/gnome-shell-extension-clipboard-indicator.git && mv gnome-shell-extension-clipboard-indicator ~/.local/share/gnome-shell/extensions/clipboard-indicator@tudmotu.com && rm -rf "$tmpdir"'
+install_gnome_ext "AppIndicator Support" 'rm -rf /tmp/g-s-appindicators-build && tmpdir=$(mktemp -d) && cd "$tmpdir" && git clone https://github.com/ubuntu/gnome-shell-extension-appindicator.git && cd gnome-shell-extension-appindicator && sed -i.bak "s/CHARSET=UTF-8/g" locale/it.po 2>/dev/null || true && meson setup . /tmp/g-s-appindicators-build && ninja -C /tmp/g-s-appindicators-build install && rm -rf "$tmpdir" /tmp/g-s-appindicators-build'
+install_gnome_ext "Internet Speed Meter" 'tmpdir=$(mktemp -d) && cd "$tmpdir" && git clone https://github.com/AlShakib/InternetSpeedMeter.git && cd InternetSpeedMeter && ./install.sh && rm -rf "$tmpdir"'
+install_gnome_ext "Weekly Commits" 'rm -rf ~/.local/share/gnome-shell/extensions/weekly-commits@funinkina.is-a.dev && mkdir -p ~/.local/share/gnome-shell/extensions && tmpdir=$(mktemp -d) && cd "$tmpdir" && git clone https://github.com/funinkina/weekly-commits.git && mv weekly-commits ~/.local/share/gnome-shell/extensions/weekly-commits@funinkina.is-a.dev && rm -rf "$tmpdir"'
+install_gnome_ext "Kimpanel" 'tmpdir=$(mktemp -d) && cd "$tmpdir" && git clone https://github.com/wengxt/gnome-shell-extension-kimpanel.git && cd gnome-shell-extension-kimpanel && ./install.sh && rm -rf "$tmpdir"'
 
-EXT_UUIDS=(
-  "blur-my-shell@aunetx:Blur My Shell"
-  "clipboard-indicator@tudmotu.com:Clipboard Indicator" 
-  "InternetSpeedMeter@Shakib:Internet Speed Meter"
-  "weekly-commits@funinkina.is-a.dev:Weekly Commits"
-  "appindicatorsupport@rgcjonas.gmail.com:AppIndicator Support"
-  "kimpanel@keyboard-input-method:Kimpanel"
-)
-
-for uuid_name in "${EXT_UUIDS[@]}"; do
-  IFS=':' read -r uuid name <<< "$uuid_name"
-  case $name in
-    "Clipboard Indicator")
-      install_gnome_ext "$name" "$uuid" 'rm -rf ~/.local/share/gnome-shell/extensions/clipboard-indicator@tudmotu.com && mkdir -p ~/.local/share/gnome-shell/extensions && tmpdir=$(mktemp -d) && (cd "$tmpdir" && git clone https://github.com/Tudmotu/gnome-shell-extension-clipboard-indicator.git && mv gnome-shell-extension-clipboard-indicator ~/.local/share/gnome-shell/extensions/clipboard-indicator@tudmotu.com && rm -rf "$tmpdir")'
-      ;;
-    "AppIndicator Support")
-      install_gnome_ext "$name" "$uuid" 'tmpdir=$(mktemp -d) && (cd "$tmpdir" && git clone https://github.com/ubuntu/gnome-shell-extension-appindicator.git && cd gnome-shell-extension-appindicator && sed -i.bak "s/CHARSET=UTF-8/g" locale/it.po 2>/dev/null || true && rm -rf /tmp/g-s-appindicators-build && meson setup . /tmp/g-s-appindicators-build && ninja -C /tmp/g-s-appindicators-build install && rm -rf "$tmpdir" /tmp/g-s-appindicators-build)'
-      ;;
-    "Blur My Shell")
-      install_gnome_ext "$name" "$uuid" 'mkdir -p ~/.local/share/gnome-shell/extensions && tmpdir=$(mktemp -d) && (cd "$tmpdir" && git clone https://github.com/aunetx/blur-my-shell && cd blur-my-shell && make install SHELL_VERSION_OVERRIDE="" && rm -rf "$tmpdir")'
-      ;;
-    "Internet Speed Meter")
-      install_gnome_ext "$name" "$uuid" 'tmpdir=$(mktemp -d) && (cd "$tmpdir" && git clone https://github.com/AlShakib/InternetSpeedMeter.git && cd InternetSpeedMeter && ./install.sh && rm -rf "$tmpdir")'
-      ;;
-    "Weekly Commits")
-      install_gnome_ext "$name" "$uuid" 'rm -rf ~/.local/share/gnome-shell/extensions/weekly-commits@funinkina.is-a.dev && mkdir -p ~/.local/share/gnome-shell/extensions && tmpdir=$(mktemp -d) && (cd "$tmpdir" && git clone https://github.com/funinkina/weekly-commits.git && mv weekly-commits ~/.local/share/gnome-shell/extensions/weekly-commits@funinkina.is-a.dev && rm -rf "$tmpdir")'
-      ;;
-    "Kimpanel")
-      install_gnome_ext "$name" "$uuid" 'tmpdir=$(mktemp -d) && (cd "$tmpdir" && git clone https://github.com/wengxt/gnome-shell-extension-kimpanel.git && cd gnome-shell-extension-kimpanel && ./install.sh && rm -rf "$tmpdir")'
-      ;;
-  esac
-done
 
 print_summary
