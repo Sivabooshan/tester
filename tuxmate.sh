@@ -377,20 +377,13 @@ fi
 
 checkpoint "Installing GNOME Shell extensions"
 
-mkdir -p ~/.local/share/gnome-shell/extensions
-
 install_gnome_ext() {
   local name=$1 func=$2
   CURRENT=$((CURRENT + 1))
-  if [ -n "${failed_ext+set}" ]; then
-    return 0
-  fi
-
   show_progress $CURRENT $TOTAL "$name"
   local start=$(date +%s)
-
-  local output
-  if output=$(with_retry bash -c "$func"); then
+  
+  if output=$(with_retry bash -c "$func" 2>&1); then
     local elapsed=$(($(date +%s) - start))
     update_avg_time $elapsed
     printf "\\r\\033[K"
@@ -400,94 +393,19 @@ install_gnome_ext() {
     printf "\\r\\033[K${RED}✗${NC} %s\\n" "$name"
     echo "$output"
     FAILED+=("$name")
-    failed_ext=1
   fi
 }
 
-failed_ext=""
+install_gnome_ext "Blur My Shell" 'mkdir -p ~/.local/share/gnome-shell/extensions && tmpdir=$(mktemp -d) && (cd "$tmpdir" && git clone https://github.com/aunetx/blur-my-shell && cd blur-my-shell && make install SHELL_VERSION_OVERRIDE="" && rm -rf "$tmpdir")'
 
-install_gnome_ext "Blur My Shell" '
-  mkdir -p ~/.local/share/gnome-shell/extensions
-  tmpdir=$(mktemp -d)
-  (
-    cd "$tmpdir" || exit
-    git clone https://github.com/aunetx/blur-my-shell
-    cd blur-my-shell
-    make install SHELL_VERSION_OVERRIDE=""
-  )
-  rm -rf "$tmpdir"
-  sleep 1
-  which gnome-extensions &>/dev/null && gnome-extensions enable blur-my-shell@aunetx.fr
-'
+install_gnome_ext "Clipboard Indicator" 'mkdir -p ~/.local/share/gnome-shell/extensions && tmpdir=$(mktemp -d) && (cd "$tmpdir" && git clone https://github.com/Tudmotu/gnome-shell-extension-clipboard-indicator.git && mv gnome-shell-extension-clipboard-indicator ~/.local/share/gnome-shell/extensions/clipboard-indicator@tudmotu.com && rm -rf "$tmpdir")'
 
-install_gnome_ext "Clipboard Indicator" '
-  mkdir -p ~/.local/share/gnome-shell/extensions
-  tmpdir=$(mktemp -d)
-  (
-    cd "$tmpdir" || exit
-    git clone https://github.com/Tudmotu/gnome-shell-extension-clipboard-indicator.git
-    mv gnome-shell-extension-clipboard-indicator ~/.local/share/gnome-shell/extensions/clipboard-indicator@tudmotu.com
-  )
-  rm -rf "$tmpdir"
-  sleep 1
-  which gnome-extensions &>/dev/null && gnome-extensions enable clipboard-indicator@tudmotu.com
-'
+install_gnome_ext "Internet Speed Meter" 'tmpdir=$(mktemp -d) && (cd "$tmpdir" && git clone https://github.com/AlShakib/InternetSpeedMeter.git && cd InternetSpeedMeter && ./install.sh && rm -rf "$tmpdir")'
 
-install_gnome_ext "Internet Speed Meter" '
-  tmpdir=$(mktemp -d)
-  (
-    cd "$tmpdir" || exit
-    git clone https://github.com/AlShakib/InternetSpeedMeter.git
-    cd InternetSpeedMeter
-    ./install.sh
-  )
-  rm -rf "$tmpdir"
-  sleep 1
-  which gnome-extensions &>/dev/null && gnome-extensions enable InternetSpeedMeter@AlShakib
-'
+install_gnome_ext "Weekly Commits" 'mkdir -p ~/.local/share/gnome-shell/extensions && tmpdir=$(mktemp -d) && (cd "$tmpdir" && git clone https://github.com/funinkina/weekly-commits.git && mv weekly-commits ~/.local/share/gnome-shell/extensions/weekly-commits@funinkina.is-a.dev && rm -rf "$tmpdir")'
 
-install_gnome_ext "Weekly Commits" '
-  mkdir -p ~/.local/share/gnome-shell/extensions
-  tmpdir=$(mktemp -d)
-  (
-    cd "$tmpdir" || exit
-    git clone https://github.com/funinkina/weekly-commits.git
-    mv weekly-commits ~/.local/share/gnome-shell/extensions/weekly-commits@funinkina.is-a.dev
-  )
-  rm -rf "$tmpdir"
-  sleep 1
-  which gnome-extensions &>/dev/null && gnome-extensions enable weekly-commits@funinkina.is-a.dev
-'
+install_gnome_ext "AppIndicator Support" 'tmpdir=$(mktemp -d) && (cd "$tmpdir" && git clone https://github.com/ubuntu/gnome-shell-extension-appindicator.git && meson gnome-shell-extension-appindicator /tmp/g-s-appindicators-build && ninja -C /tmp/g-s-appindicators-build install && rm -rf "$tmpdir" /tmp/g-s-appindicators-build)'
 
-install_gnome_ext "AppIndicator Support" '
-  mkdir -p ~/.local/share/gnome-shell/extensions
-  tmpdir=$(mktemp -d)
-  builddir=/tmp/g-s-appindicators-build
-  (
-    cd "$tmpdir" || exit
-    git clone https://github.com/ubuntu/gnome-shell-extension-appindicator.git
-    meson gnome-shell-extension-appindicator "$builddir"
-    ninja -C "$builddir" install
-  )
-  rm -rf "$tmpdir" "$builddir"
-  sleep 1
-  which gnome-extensions &>/dev/null && gnome-extensions enable appindicatorsupport@rgcjonas.gmail.com
-'
-
-install_gnome_ext "Kimpanel" '
-  tmpdir=$(mktemp -d)
-  (
-    cd "$tmpdir" || exit
-    git clone https://github.com/wengxt/gnome-shell-extension-kimpanel.git
-    cd gnome-shell-extension-kimpanel
-    ./install.sh
-  )
-  rm -rf "$tmpdir"
-  sleep 1
-  which gnome-extensions &>/dev/null && gnome-extensions enable kimpanel@global
-'
-
-unset failed_ext
-
+install_gnome_ext "Kimpanel" 'tmpdir=$(mktemp -d) && (cd "$tmpdir" && git clone https://github.com/wengxt/gnome-shell-extension-kimpanel.git && cd gnome-shell-extension-kimpanel && ./install.sh && rm -rf "$tmpdir")'
 
 print_summary
