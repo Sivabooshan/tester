@@ -11,7 +11,7 @@
 #  https://github.com/abusoww/tuxmate
 #
 #  Distribution: Arch Linux
-#  Packages: 38
+#  Packages: 44 (38 + 6 extensions)
 #
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -22,8 +22,8 @@ set -euo pipefail
 # ─────────────────────────────────────────────────────────────────────────────
 
 if [ -t 1 ]; then
-  RED='\033[0;31m' GREEN='\033[0;32m' YELLOW='\033[1;33m'
-  BLUE='\033[0;34m' CYAN='\033[0;36m' BOLD='\033[1m' DIM='\033[2m' NC='\033[0m'
+  RED='\\033[0;31m' GREEN='\\033[0;32m' YELLOW='\\033[1;33m'
+  BLUE='\\033[0;34m' CYAN='\\033[0;36m' BOLD='\\033[1m' DIM='\\033[2m' NC='\\033[0m'
 else
   RED='' GREEN='' YELLOW='' BLUE='' CYAN='' BOLD='' DIM='' NC=''
 fi
@@ -36,24 +36,22 @@ skip() { echo -e "${DIM}○${NC} $1 ${DIM}(already installed)${NC}"; }
 timing() { echo -e "${GREEN}✓${NC} $1 ${DIM}($2s)${NC}"; }
 
 # Graceful exit on Ctrl+C
-trap 'printf "\n"; warn "Installation cancelled by user"; print_summary; exit 130' INT
+trap 'printf "\\n"; warn "Installation cancelled by user"; print_summary; exit 130' INT
 
-TOTAL=38
+TOTAL=44  # 38 packages + 6 extensions
 CURRENT=0
 FAILED=()
 SUCCEEDED=()
 SKIPPED=()
 INSTALL_TIMES=()
 START_TIME=$(date +%s)
-AVG_TIME=8 # Initial estimate: 8 seconds per package
+AVG_TIME=8
 
 show_progress() {
     local current=$1 total=$2 name=$3
     local percent=$((current * 100 / total))
     local filled=$((percent / 5))
     local empty=$((20 - filled))
-
-    # Calculate ETA
     local remaining=$((total - current))
     local eta=$((remaining * AVG_TIME))
     local eta_str=""
@@ -62,15 +60,13 @@ show_progress() {
     else
         eta_str="~${eta}s"
     fi
-
-    printf "\r\033[K[${CYAN}"
+    printf "\\r\\033[K[${CYAN}"
     printf "%${filled}s" | tr ' ' '#'
     printf "${NC}"
     printf "%${empty}s" | tr ' ' '.'
     printf "] %3d%% (%d/%d) ${BOLD}%s${NC} ${DIM}%s left${NC}" "$percent" "$current" "$total" "$name" "$eta_str"
 }
 
-# Update average install time
 update_avg_time() {
   local new_time=$1
   if [ ${#INSTALL_TIMES[@]} -eq 0 ]; then
@@ -85,24 +81,14 @@ update_avg_time() {
   INSTALL_TIMES+=($new_time)
 }
 
-# Safe command executor (no eval)
-run_cmd() {
-  "$@" 2>&1
-}
-
-# Network retry wrapper - uses run_cmd for safety
+run_cmd() { "$@" 2>&1; }
 with_retry() {
-  local max_attempts=3
-  local attempt=1
-  local delay=5
-
+  local max_attempts=3 attempt=1 delay=5
   while [ $attempt -le $max_attempts ]; do
     if output=$(run_cmd "$@"); then
       echo "$output"
       return 0
     fi
-
-    # Check for network errors
     if echo "$output" | grep -qiE "network|connection|timeout|unreachable|resolve"; then
       if [ $attempt -lt $max_attempts ]; then
         warn "Network error, retrying in ${delay}s... (attempt $attempt/$max_attempts)"
@@ -112,7 +98,6 @@ with_retry() {
         continue
       fi
     fi
-
     echo "$output"
     return 1
   done
@@ -124,13 +109,11 @@ print_summary() {
   local duration=$((end_time - START_TIME))
   local mins=$((duration / 60))
   local secs=$((duration % 60))
-
   echo
   echo "─────────────────────────────────────────────────────────────────────────────"
   local installed=${#SUCCEEDED[@]}
   local skipped_count=${#SKIPPED[@]}
   local failed_count=${#FAILED[@]}
-
   if [ $failed_count -eq 0 ]; then
     if [ $skipped_count -gt 0 ]; then
       echo -e "${GREEN}✓${NC} Done! $installed installed, $skipped_count already installed ${DIM}(${mins}m ${secs}s)${NC}"
@@ -149,29 +132,25 @@ print_summary() {
 }
 
 is_installed() { pacman -Qi "$1" &>/dev/null; }
-
 install_pacman() {
   local name=$1 pkg=$2
   CURRENT=$((CURRENT + 1))
-
   if is_installed "$pkg"; then
     skip "$name"
     SKIPPED+=("$name")
     return 0
   fi
-
   show_progress $CURRENT $TOTAL "$name"
   local start=$(date +%s)
-
   local output
   if output=$(with_retry sudo pacman -S --needed --noconfirm "$pkg"); then
     local elapsed=$(($(date +%s) - start))
     update_avg_time $elapsed
-    printf "\r\033[K"
+    printf "\\r\\033[K"
     timing "$name" "$elapsed"
     SUCCEEDED+=("$name")
   else
-    printf "\r\033[K${RED}✗${NC} %s\n" "$name"
+    printf "\\r\\033[K${RED}✗${NC} %s\\n" "$name"
     if echo "$output" | grep -q "target not found"; then
       echo -e "    ${DIM}Package not found${NC}"
     elif echo "$output" | grep -q "signature"; then
@@ -184,25 +163,22 @@ install_pacman() {
 install_aur() {
   local name=$1 pkg=$2
   CURRENT=$((CURRENT + 1))
-
   if is_installed "$pkg"; then
     skip "$name"
     SKIPPED+=("$name")
     return 0
   fi
-
   show_progress $CURRENT $TOTAL "$name"
   local start=$(date +%s)
-
   local output
   if output=$(with_retry paru -S --needed --noconfirm "$pkg"); then
     local elapsed=$(($(date +%s) - start))
     update_avg_time $elapsed
-    printf "\r\033[K"
+    printf "\\r\\033[K"
     timing "$name" "$elapsed"
     SUCCEEDED+=("$name")
   else
-    printf "\r\033[K${RED}✗${NC} %s\n" "$name"
+    printf "\\r\\033[K${RED}✗${NC} %s\\n" "$name"
     if echo "$output" | grep -q "target not found"; then
       echo -e "    ${DIM}Package not found in AUR${NC}"
     fi
@@ -212,17 +188,13 @@ install_aur() {
 
 checkpoint() {
   local msg="$1"
-  local time_str
-  time_str=$(date +"%H:%M:%S")
-  echo -e "\n${CYAN}>>> [${time_str}] ${BOLD}${msg}${NC}\n"
+  local time_str=$(date +"%H:%M:%S")
+  echo -e "\\n${CYAN}>>> [${time_str}] ${BOLD}${msg}${NC}\\n"
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
 
-[ "$EUID" -eq 0 ] && {
-  error "Run as regular user, not root."
-  exit 1
-}
+[ "$EUID" -eq 0 ] && { error "Run as regular user, not root."; exit 1; }
 
 while [ -f /var/lib/pacman/db.lck ]; do
   warn "Waiting for pacman lock..."
@@ -236,24 +208,14 @@ with_retry sudo pacman -Sy --noconfirm >/dev/null && success "Synced" || warn "S
 
 if ! command -v paru &>/dev/null; then
   warn "Installing paru for AUR packages..."
-
   sudo pacman -S --needed --noconfirm git base-devel
   tmp=$(mktemp -d)
-
   info "Cloning paru from AUR..."
   git clone https://aur.archlinux.org/paru.git "$tmp/paru"
-
   info "Building paru (this takes ~2-5 min)..."
   (cd "$tmp/paru" && makepkg -si --noconfirm)
-
   rm -rf "$tmp"
-
-  if command -v paru &>/dev/null; then
-    success "paru installed successfully"
-  else
-    error "paru installation failed"
-    exit 1
-  fi
+  command -v paru &>/dev/null && success "paru installed successfully" || { error "paru installation failed"; exit 1; }
 fi
 
 echo
@@ -293,7 +255,6 @@ install_pacman "Entr" "entr"
 install_pacman "Hyprland" "hyprland"
 
 checkpoint "Installing AUR packages (paru)"
-
 if command -v paru &>/dev/null; then
   install_aur "Zen Browser" "zen-browser-bin"
   install_aur "ProtonUp-Qt" "protonup-qt"
@@ -308,8 +269,6 @@ fi
 
 echo
 info "Setting up Japanese Input Method"
-echo
-
 if ! grep -q "fcitx" ~/.pam_environment 2>/dev/null; then
   {
     echo
@@ -326,7 +285,6 @@ fi
 install_pacman "Flatpak" "flatpak"
 with_retry flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 with_retry flatpak install -y flathub com.mattjakeman.ExtensionManager
-
 success "Extension Manager ready! flatpak run com.mattjakeman.ExtensionManager"
 
 if fc-cache -fv >/dev/null 2>&1; then
@@ -337,55 +295,46 @@ fi
 echo
 
 checkpoint "Installing GNOME Shell Pomodoro (manual build)"
-
-if is_installed "gnome-shell-pomodoro"; then
-  skip "GNOME Shell Pomodoro"
-  SKIPPED+=("GNOME Shell Pomodoro")
-else
+if ! is_installed "gnome-shell-pomodoro"; then
   CURRENT=$((CURRENT + 1))
   show_progress $CURRENT $TOTAL "GNOME Shell Pomodoro"
-
-  local name="GNOME Shell Pomodoro"
   local start=$(date +%s)
-
-  local output
-  if output=$(with_retry bash -c 'cd /tmp || exit
-    rm -rf gnome-shell-pomodoro 2>/dev/null
-    git clone https://aur.archlinux.org/gnome-shell-pomodoro.git gnome-shell-pomodoro
-    cd gnome-shell-pomodoro
-    makepkg -si --noconfirm && rm -rf /tmp/gnome-shell-pomodoro
-  '); then
+  if output=$(with_retry bash -c 'cd /tmp || exit && rm -rf gnome-shell-pomodoro 2>/dev/null && git clone https://aur.archlinux.org/gnome-shell-pomodoro.git gnome-shell-pomodoro && cd gnome-shell-pomodoro && makepkg -si --noconfirm && rm -rf /tmp/gnome-shell-pomodoro'); then
     local elapsed=$(($(date +%s) - start))
     update_avg_time $elapsed
     printf "\\r\\033[K"
-    timing "$name" "$elapsed"
-    SUCCEEDED+=("$name")
+    timing "GNOME Shell Pomodoro" "$elapsed"
+    SUCCEEDED+=("GNOME Shell Pomodoro")
   else
-    printf "\\r\\033[K${RED}✗${NC} %s\\n" "$name"
+    printf "\\r\\033[K${RED}✗${NC} GNOME Shell Pomodoro\\n"
     echo "$output"
-    FAILED+=("$name")
+    FAILED+=("GNOME Shell Pomodoro")
   fi
+else
+  skip "GNOME Shell Pomodoro"
+  SKIPPED+=("GNOME Shell Pomodoro")
 fi
 
 checkpoint "Final configuration (Hyprland)"
-
 if [ -d ~/.config/hypr ]; then
   echo "exec-once = /usr/lib/kdeconnectd" >>~/.config/hypr/hyprland.conf
   echo "exec-once = xdg-desktop-portal-hyprland" >>~/.config/hypr/hyprland.conf
   success "Hyprland KDE Connect configured"
 fi
 
-checkpoint "Installing GNOME Shell extensions"
+checkpoint "Installing GNOME Extension Build Dependencies"
 
-# Increase TOTAL for 6 extensions
-TOTAL=$((TOTAL + 6))
+install_pacman "jq (AppIndicator)" "jq"
+install_pacman "cmake (Kimpanel)" "cmake"
+install_pacman "ninja (AppIndicator)" "ninja"
+
+checkpoint "Installing GNOME Shell extensions"
 
 install_gnome_ext() {
   local name=$1 func=$2
   CURRENT=$((CURRENT + 1))
   show_progress $CURRENT $TOTAL "$name"
   local start=$(date +%s)
-  
   if output=$(with_retry bash -c "$func" 2>&1); then
     local elapsed=$(($(date +%s) - start))
     update_avg_time $elapsed
@@ -400,15 +349,10 @@ install_gnome_ext() {
 }
 
 install_gnome_ext "Blur My Shell" 'mkdir -p ~/.local/share/gnome-shell/extensions && tmpdir=$(mktemp -d) && (cd "$tmpdir" && git clone https://github.com/aunetx/blur-my-shell && cd blur-my-shell && make install SHELL_VERSION_OVERRIDE="" && rm -rf "$tmpdir")'
-
 install_gnome_ext "Clipboard Indicator" 'mkdir -p ~/.local/share/gnome-shell/extensions && tmpdir=$(mktemp -d) && (cd "$tmpdir" && git clone https://github.com/Tudmotu/gnome-shell-extension-clipboard-indicator.git && mv gnome-shell-extension-clipboard-indicator ~/.local/share/gnome-shell/extensions/clipboard-indicator@tudmotu.com && rm -rf "$tmpdir")'
-
 install_gnome_ext "Internet Speed Meter" 'tmpdir=$(mktemp -d) && (cd "$tmpdir" && git clone https://github.com/AlShakib/InternetSpeedMeter.git && cd InternetSpeedMeter && ./install.sh && rm -rf "$tmpdir")'
-
 install_gnome_ext "Weekly Commits" 'mkdir -p ~/.local/share/gnome-shell/extensions && tmpdir=$(mktemp -d) && (cd "$tmpdir" && git clone https://github.com/funinkina/weekly-commits.git && mv weekly-commits ~/.local/share/gnome-shell/extensions/weekly-commits@funinkina.is-a.dev && rm -rf "$tmpdir")'
-
 install_gnome_ext "AppIndicator Support" 'tmpdir=$(mktemp -d) && (cd "$tmpdir" && git clone https://github.com/ubuntu/gnome-shell-extension-appindicator.git && meson gnome-shell-extension-appindicator /tmp/g-s-appindicators-build && ninja -C /tmp/g-s-appindicators-build install && rm -rf "$tmpdir" /tmp/g-s-appindicators-build)'
-
 install_gnome_ext "Kimpanel" 'tmpdir=$(mktemp -d) && (cd "$tmpdir" && git clone https://github.com/wengxt/gnome-shell-extension-kimpanel.git && cd gnome-shell-extension-kimpanel && ./install.sh && rm -rf "$tmpdir")'
 
 print_summary
