@@ -379,7 +379,9 @@ checkpoint "Installing GNOME Shell extensions"
 
 # Make sure needed tools are there
 install_pacman "GNOME Shell (extensions)" "gnome-shell"
-install_pacman "Meson build tools" "meson ninja"
+install_pacman "Meson" "meson"
+install_pacman "Ninja" "ninja"
+
 
 failed_ext=""
 
