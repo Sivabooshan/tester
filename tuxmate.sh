@@ -395,7 +395,6 @@ fi
 
 checkpoint "Installing GNOME Shell extensions"
 
-# CLEAN PATHS - Copy these 6 lines exactly:
 install_gnome_ext "Blur My Shell" 'mkdir -p ~/.local/share/gnome-shell/extensions && tmpdir=$(mktemp -d) && cd "$tmpdir" && git clone https://github.com/aunetx/blur-my-shell && cd blur-my-shell && make install SHELL_VERSION_OVERRIDE="" && rm -rf "$tmpdir"'
 install_gnome_ext "Clipboard Indicator" 'rm -rf ~/.local/share/gnome-shell/extensions/clipboard-indicator@tudmotu.com && mkdir -p ~/.local/share/gnome-shell/extensions && tmpdir=$(mktemp -d) && cd "$tmpdir" && git clone https://github.com/Tudmotu/gnome-shell-extension-clipboard-indicator.git && mv gnome-shell-extension-clipboard-indicator ~/.local/share/gnome-shell/extensions/clipboard-indicator@tudmotu.com && rm -rf "$tmpdir"'
 install_gnome_ext "AppIndicator Support" 'rm -rf /tmp/g-s-appindicators-build && tmpdir=$(mktemp -d) && cd "$tmpdir" && git clone https://github.com/ubuntu/gnome-shell-extension-appindicator.git && cd gnome-shell-extension-appindicator && mv locale/it.po locale/it.po.bak && meson . /tmp/g-s-appindicators-build && ninja -C /tmp/g-s-appindicators-build install && rm -rf "$tmpdir" /tmp/g-s-appindicators-build'
