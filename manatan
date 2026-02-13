@@ -1,0 +1,73 @@
+**Complete Manatan Installation on Arch Linux (Start to Finish)**
+
+## Step 1: Install System Dependencies
+```bash
+sudo pacman -S base-devel p7zip nasm git curl wget unzip zip gtk3 libappindicator-gtk3 librsvg libxtst fuse2 jdk21-openjdk
+```
+
+## Step 2: Setup Rust
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+source $HOME/.cargo/env
+rustc --version  # Verify
+```
+
+## Step 3: Setup Node.js 22 + Yarn (Fix permissions properly)
+```bash
+# Install nvm
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+
+# Reload shell
+exec zsh  # OR: source ~/.zshrc
+
+# Install Node 22
+nvm install 22.12.0
+nvm use 22.12.0
+
+# Configure npm to use local dir (AVOIDS sudo)
+mkdir -p ~/.npm-global/bin
+npm config set prefix '~/.npm-global'
+echo 'export PATH="$HOME/.npm-global/bin:$HOME/.nvm/versions/node/v22.12.0/bin:$PATH"' >> ~/.zshrc
+
+# Reload PATH
+source ~/.zshrc
+
+# Install yarn globally
+npm install -g yarn
+yarn --version  # Should show 1.x
+```
+
+## Step 4: Clone & Build
+```bash
+cd ~/Photos/Japanese  # Your preferred dir
+rm -rf manatan  # Clean previous attempt
+git clone --recursive https://github.com/kolbyml/manatan.git
+cd manatan
+make dev-embedded
+```
+
+## Step 5: Launch & Use
+1. Wait for build (~5-10 min first time)
+2. Opens automatically OR visit `http://127.0.0.1:4568/`
+3. **Browse → Extensions → Install** (Mihon/Aniyomi sources)
+4. **Start reading/watching** - OCR & dictionary lookup works instantly
+
+## Troubleshooting
+```
+# Firewall (if blocked)
+sudo firewall-cmd --add-port=4568/tcp --permanent && sudo firewall-cmd --reload
+
+# Wayland issues
+GDK_BACKEND=x11 ./target/release/manatan
+
+# Clear data
+rm -rf ~/.local/share/Tachidesk ~/.config/manatan
+```
+
+## Summary: Memento vs Manatan (Arch Linux)
+| App | Install Time | Command | Features |
+|-----|--------------|---------|----------|
+| **Memento** | 2 min | `yay -S memento` | Video player + subs |
+| **Manatan** | 20 min | Above steps | Manga/Anime + OCR |
+
+**Done!** Manatan now runs with embedded JRE, WebUI, and full Japanese study features.[](https://github.com/kolbyml/manatan)
