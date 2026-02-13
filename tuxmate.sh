@@ -353,6 +353,7 @@ if command -v paru &>/dev/null; then
   install_aur "Pomodoro" "gnome-shell-pomodoro"
   install_aur "ZapZap" "zapzap-git"
   install_aur "Music Presence" "music-presence-bin"
+  install_aur "Memento" "memento"
 fi
 
 echo
