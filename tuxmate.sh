@@ -338,7 +338,7 @@ install_pacman "CMake" "cmake"
 install_pacman "jq" "jq"
 install_pacman "Zip" "zip"
 install_pacman "Gettext" "gettext"
-sudo pacman -S base-devel p7zip nasm git curl wget unzip zip gtk3 libappindicator-gtk3 librsvg libxtst fuse2 jdk21-openjdk
+install_pacman "Flameshot" "flameshot"
 
 checkpoint "Installing AUR packages (paru)"
 
