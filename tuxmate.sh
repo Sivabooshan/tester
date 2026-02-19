@@ -11,7 +11,6 @@
 #  https://github.com/abusoww/tuxmate
 #
 #  Distribution: Arch Linux
-#  Packages: 38
 #
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -38,7 +37,6 @@ timing() { echo -e "${GREEN}✓${NC} $1 ${DIM}($2s)${NC}"; }
 # Graceful exit on Ctrl+C
 trap 'printf "\n"; warn "Installation cancelled by user"; print_summary; exit 130' INT
 
-TOTAL=0
 CURRENT=0
 FAILED=()
 SUCCEEDED=()
@@ -46,11 +44,12 @@ SKIPPED=()
 INSTALL_TIMES=()
 START_TIME=$(date +%s)
 PACMAN_CURRENT=0
-PACMAN_TOTAL=35
+PACMAN_TOTAL=37
 AUR_CURRENT=0
-AUR_TOTAL=9
-EXT_TOTAL=6
+AUR_TOTAL=10
 EXT_CURRENT=0
+EXT_TOTAL=6
+TOTAL=$((PACMAN_TOTAL + AUR_TOTAL + EXT_TOTAL))
 AVG_TIME=8 # Initial estimate: 8 seconds per package
 
 show_progress() {
@@ -234,7 +233,7 @@ install_gnome_ext() {
   fi
   
   EXT_CURRENT=$((EXT_CURRENT + 1))
-  show_progress "$EXT_CURRENT" "$EXT_TOTAL" "$name" "EXT"
+  show_progress "$EXT_CURRENT" "$EXT_TOTAL" "$name"
   local start=$(date +%s)
   
   if output=$(with_retry bash -c "$func"); then
@@ -296,12 +295,10 @@ if ! command -v paru &>/dev/null; then
 fi
 
 echo
-info "Installing $TOTAL packages"
+info "Installing $TOTAL packages ($PACMAN_TOTAL pacman + $AUR_TOTAL AUR + $EXT_TOTAL extensions)"
 echo
 
-checkpoint "Installing system applications (pacman)"
-
-TOTAL=35
+info "Installing $PACMAN_TOTAL system applications (pacman)"
 
 install_pacman "Tor Browser" "torbrowser-launcher"
 install_pacman "Discord" "discord"
@@ -339,11 +336,11 @@ install_pacman "jq" "jq"
 install_pacman "Zip" "zip"
 install_pacman "Gettext" "gettext"
 install_pacman "Flameshot" "flameshot"
+install_pacman "Papirus Icon Theme" "papirus-icon-theme"
+install_pacman "Nautilus Python" "python-nautilus"
 
-checkpoint "Installing AUR packages (paru)"
-
-TOTAL=9
-
+info "Installing $AUR_TOTAL AUR packages"
+ 
 if command -v paru &>/dev/null; then
   install_aur "Zen Browser" "zen-browser-bin"
   install_aur "ProtonUp-Qt" "protonup-qt"
@@ -356,6 +353,7 @@ if command -v paru &>/dev/null; then
   install_aur "Music Presence" "music-presence-bin"
   install_aur "Memento" "memento"
   install_aur "Telegram Video Downloader" "tdl"
+  install_aur "Folder Color Nautilus" "folder-color-nautilus"
 fi
 
 echo
@@ -375,11 +373,9 @@ else
   skip "Japanese input environment (already configured)"
 fi
 
-install_pacman "Flatpak" "flatpak"
+checkpoint "Setting up Flatpak Extension Manager"
 with_retry flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 with_retry flatpak install -y flathub com.mattjakeman.ExtensionManager
-
-success "Extension Manager ready! flatpak run com.mattjakeman.ExtensionManager"
 
 if fc-cache -fv >/dev/null 2>&1; then
   success "Font cache refreshed"
@@ -396,7 +392,7 @@ if [ -d ~/.config/hypr ]; then
   success "Hyprland KDE Connect configured"
 fi
 
-checkpoint "Installing GNOME Shell extensions"
+info "Installing $EXT_TOTAL GNOME Shell extensions"
 
 install_gnome_ext "Blur My Shell" 'mkdir -p ~/.local/share/gnome-shell/extensions && tmpdir=$(mktemp -d) && cd "$tmpdir" && git clone https://github.com/aunetx/blur-my-shell && cd blur-my-shell && make install SHELL_VERSION_OVERRIDE="" && rm -rf "$tmpdir"'
 install_gnome_ext "Clipboard Indicator" 'rm -rf ~/.local/share/gnome-shell/extensions/clipboard-indicator@tudmotu.com && mkdir -p ~/.local/share/gnome-shell/extensions && tmpdir=$(mktemp -d) && cd "$tmpdir" && git clone https://github.com/Tudmotu/gnome-shell-extension-clipboard-indicator.git && mv gnome-shell-extension-clipboard-indicator ~/.local/share/gnome-shell/extensions/clipboard-indicator@tudmotu.com && rm -rf "$tmpdir"'
@@ -405,5 +401,24 @@ install_gnome_ext "Internet Speed Meter" 'tmpdir=$(mktemp -d) && cd "$tmpdir" &&
 install_gnome_ext "Weekly Commits" 'rm -rf ~/.local/share/gnome-shell/extensions/weekly-commits@funinkina.is-a.dev && mkdir -p ~/.local/share/gnome-shell/extensions && tmpdir=$(mktemp -d) && cd "$tmpdir" && git clone https://github.com/funinkina/weekly-commits.git && mv weekly-commits ~/.local/share/gnome-shell/extensions/weekly-commits@funinkina.is-a.dev && rm -rf "$tmpdir"'
 install_gnome_ext "Kimpanel" 'tmpdir=$(mktemp -d) && cd "$tmpdir" && git clone https://github.com/wengxt/gnome-shell-extension-kimpanel.git && cd gnome-shell-extension-kimpanel && ./install.sh && rm -rf "$tmpdir"'
 
+checkpoint "Configuring Papirus icons & folder colors"
+
+if gsettings get org.gnome.desktop.interface icon-theme 2>/dev/null | grep -q Papirus; then
+  skip "Papirus theme (already set)"
+else
+  gsettings set org.gnome.desktop.interface icon-theme 'Papirus'
+  success "Papirus icon theme applied"
+fi
+
+
+# Restart Nautilus if running
+if pgrep -x "nautilus" > /dev/null; then
+  nautilus -q
+  success "Nautilus restarted"
+else
+  skip "Nautilus restart (not running)"
+fi
+
+echo
 
 print_summary
