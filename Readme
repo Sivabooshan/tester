@@ -1,1 +1,1 @@
-cd Downloads && sudo pacman -S --needed --noconfirm git base-devel && git clone https://github.com/Sivabooshan/tester.git && cd tester && chmod +x tuxmate.sh &&./tuxmate.sh
+sudo pacman -Syyu && cd Downloads && sudo pacman -S --needed --noconfirm git base-devel && git clone https://github.com/Sivabooshan/tester.git && cd tester && chmod +x tuxmate.sh &&./tuxmate.sh
