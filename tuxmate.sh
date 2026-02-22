@@ -46,7 +46,7 @@ START_TIME=$(date +%s)
 PACMAN_CURRENT=0
 PACMAN_TOTAL=37
 AUR_CURRENT=0
-AUR_TOTAL=10
+AUR_TOTAL=11
 EXT_CURRENT=0
 EXT_TOTAL=6
 TOTAL=$((PACMAN_TOTAL + AUR_TOTAL + EXT_TOTAL))
@@ -164,7 +164,7 @@ install_pacman() {
     PACMAN_CURRENT=$((PACMAN_CURRENT + 1))
     return 0
   fi
-  PACMAN_CURRENT=$((PACMAN_CURRENT + 1))  # Use section counter
+  PACMAN_CURRENT=$((PACMAN_CURRENT + 1))
   show_progress "$PACMAN_CURRENT" "$PACMAN_TOTAL" "$name"
   local start=$(date +%s)
 
@@ -238,11 +238,11 @@ install_gnome_ext() {
   
   if output=$(with_retry bash -c "$func"); then
     local elapsed=$(($(date +%s) - start))
-    printf "\r\033[K"                    # Clear progress bar only
+    printf "\r\033[K"
     timing "$name" "$elapsed"
     SUCCEEDED+=("$name")
   else
-    printf "\n${RED}✗${NC} $name\n"      # ← NEW LINE + full name
+    printf "\n${RED}✗${NC} $name\n"
     echo "  ${DIM}Failed: $output${NC}"
     FAILED+=("$name")
   fi
@@ -336,8 +336,6 @@ install_pacman "jq" "jq"
 install_pacman "Zip" "zip"
 install_pacman "Gettext" "gettext"
 install_pacman "Flameshot" "flameshot"
-install_pacman "Papirus Icon Theme" "papirus-icon-theme"
-install_pacman "Nautilus Python" "python-nautilus"
 
 info "Installing $AUR_TOTAL AUR packages"
  
@@ -353,7 +351,6 @@ if command -v paru &>/dev/null; then
   install_aur "Music Presence" "music-presence-bin"
   install_aur "Memento" "memento"
   install_aur "Telegram Video Downloader" "tdl"
-  install_aur "Folder Color Nautilus" "folder-color-nautilus"
 fi
 
 echo
@@ -400,25 +397,5 @@ install_gnome_ext "AppIndicator Support" 'rm -rf /tmp/g-s-appindicators-build &&
 install_gnome_ext "Internet Speed Meter" 'tmpdir=$(mktemp -d) && cd "$tmpdir" && git clone https://github.com/AlShakib/InternetSpeedMeter.git && cd InternetSpeedMeter && ./install.sh && rm -rf "$tmpdir"'
 install_gnome_ext "Weekly Commits" 'rm -rf ~/.local/share/gnome-shell/extensions/weekly-commits@funinkina.is-a.dev && mkdir -p ~/.local/share/gnome-shell/extensions && tmpdir=$(mktemp -d) && cd "$tmpdir" && git clone https://github.com/funinkina/weekly-commits.git && mv weekly-commits ~/.local/share/gnome-shell/extensions/weekly-commits@funinkina.is-a.dev && rm -rf "$tmpdir"'
 install_gnome_ext "Kimpanel" 'tmpdir=$(mktemp -d) && cd "$tmpdir" && git clone https://github.com/wengxt/gnome-shell-extension-kimpanel.git && cd gnome-shell-extension-kimpanel && ./install.sh && rm -rf "$tmpdir"'
-
-checkpoint "Configuring Papirus icons & folder colors"
-
-if gsettings get org.gnome.desktop.interface icon-theme 2>/dev/null | grep -q Papirus; then
-  skip "Papirus theme (already set)"
-else
-  gsettings set org.gnome.desktop.interface icon-theme 'Papirus'
-  success "Papirus icon theme applied"
-fi
-
-
-# Restart Nautilus if running
-if pgrep -x "nautilus" > /dev/null; then
-  nautilus -q
-  success "Nautilus restarted"
-else
-  skip "Nautilus restart (not running)"
-fi
-
-echo
 
 print_summary
