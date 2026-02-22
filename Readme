@@ -1,4 +1,4 @@
-sudo sed -i '/^\[multilib\]/,/^$/s/^#//' /etc/pacman.conf && 
+sudo sed -i 's/^#\[multilib\]/[multilib]/; s/^#Include = /Include = /' /etc/pacman.conf && 
 sudo pacman -Syyu && 
 cd Downloads && 
 sudo pacman -S --needed --noconfirm git base-devel && 
