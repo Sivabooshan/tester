@@ -298,12 +298,12 @@ echo
 info "Installing $TOTAL packages ($PACMAN_TOTAL pacman + $AUR_TOTAL AUR + $EXT_TOTAL extensions)"
 echo
 
+info "Installing $PACMAN_TOTAL system applications (pacman)"
+
 checkpoint "Authenticating sudo for Pacman Packages installation"
 sudo -v
 success "Sudo authenticated - no more prompts during Pacman installation"
 echo
-
-info "Installing $PACMAN_TOTAL system applications (pacman)"
 
 install_pacman "Tor Browser" "torbrowser-launcher"
 install_pacman "Discord" "discord"
