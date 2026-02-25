@@ -298,6 +298,11 @@ echo
 info "Installing $TOTAL packages ($PACMAN_TOTAL pacman + $AUR_TOTAL AUR + $EXT_TOTAL extensions)"
 echo
 
+checkpoint "Authenticating sudo for Pacman Packages installation"
+sudo -v
+success "Sudo authenticated - no more prompts during Pacman installation"
+echo
+
 info "Installing $PACMAN_TOTAL system applications (pacman)"
 
 install_pacman "Tor Browser" "torbrowser-launcher"
@@ -338,7 +343,12 @@ install_pacman "Gettext" "gettext"
 install_pacman "Flameshot" "flameshot"
 
 info "Installing $AUR_TOTAL AUR packages"
- 
+
+checkpoint "Authenticating sudo for AUR Package installation"
+sudo -v
+success "Sudo authenticated - no more prompts during AUR Packages installation"
+echo
+
 if command -v paru &>/dev/null; then
   install_aur "Zen Browser" "zen-browser-bin"
   install_aur "ProtonUp-Qt" "protonup-qt"
@@ -390,6 +400,11 @@ if [ -d ~/.config/hypr ]; then
 fi
 
 info "Installing $EXT_TOTAL GNOME Shell extensions"
+
+checkpoint "Authenticating sudo for GNOME Shell extensions installation"
+sudo -v
+success "Sudo authenticated - no more prompts during GNOME Shell extensions installation"
+echo
 
 install_gnome_ext "Blur My Shell" 'mkdir -p ~/.local/share/gnome-shell/extensions && tmpdir=$(mktemp -d) && cd "$tmpdir" && git clone https://github.com/aunetx/blur-my-shell && cd blur-my-shell && make install SHELL_VERSION_OVERRIDE="" && rm -rf "$tmpdir"'
 install_gnome_ext "Clipboard Indicator" 'rm -rf ~/.local/share/gnome-shell/extensions/clipboard-indicator@tudmotu.com && mkdir -p ~/.local/share/gnome-shell/extensions && tmpdir=$(mktemp -d) && cd "$tmpdir" && git clone https://github.com/Tudmotu/gnome-shell-extension-clipboard-indicator.git && mv gnome-shell-extension-clipboard-indicator ~/.local/share/gnome-shell/extensions/clipboard-indicator@tudmotu.com && rm -rf "$tmpdir"'
