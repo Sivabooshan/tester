@@ -298,7 +298,9 @@ echo
 info "Installing $TOTAL packages ($PACMAN_TOTAL pacman + $AUR_TOTAL AUR + $EXT_TOTAL extensions)"
 echo
 
+echo
 info "Installing $PACMAN_TOTAL system applications (pacman)"
+echo
 
 checkpoint "Authenticating sudo for Pacman Packages installation"
 sudo -v
@@ -342,7 +344,9 @@ install_pacman "Zip" "zip"
 install_pacman "Gettext" "gettext"
 install_pacman "Flameshot" "flameshot"
 
+echo
 info "Installing $AUR_TOTAL AUR packages"
+echo
 
 checkpoint "Authenticating sudo for AUR Package installation"
 sudo -v
@@ -380,7 +384,10 @@ else
   skip "Japanese input environment (already configured)"
 fi
 
+echo
 checkpoint "Setting up Flatpak Extension Manager"
+echo
+
 with_retry flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 with_retry flatpak install -y flathub com.mattjakeman.ExtensionManager
 
@@ -391,7 +398,9 @@ else
 fi
 echo
 
+echo
 checkpoint "Final configuration (Hyprland)"
+echo
 
 if [ -d ~/.config/hypr ]; then
   echo "exec-once = /usr/lib/kdeconnectd" >>~/.config/hypr/hyprland.conf
@@ -399,7 +408,9 @@ if [ -d ~/.config/hypr ]; then
   success "Hyprland KDE Connect configured"
 fi
 
+echo
 info "Installing $EXT_TOTAL GNOME Shell extensions"
+echo
 
 checkpoint "Authenticating sudo for GNOME Shell extensions installation"
 sudo -v
