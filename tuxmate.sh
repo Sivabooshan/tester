@@ -216,10 +216,20 @@ install_aur() {
     FAILED+=("$name")
   fi
 }
-
 install_gnome_ext() {
-  local name=$1 func=$2
+  local name=$1 func=$2 uuid=""
   
+  # Map extension names to UUIDs for activation
+  case "$name" in
+    "Blur My Shell") uuid="blur-my-shell@aunetx" ;;
+    "Clipboard Indicator") uuid="clipboard-indicator@tudmotu.com" ;;
+    "AppIndicator Support") uuid="appindicatorsupport@rgcjonas.gmail.com" ;;
+    "Internet Speed Meter") uuid="InternetSpeedMeter@Shakib" ;;
+    "Weekly Commits") uuid="weekly-commits@funinkina.is-a.dev" ;;
+    "Kimpanel") uuid="kimpanel@keyboard-input-method" ;;
+  esac
+  
+  # Check if already installed
   if [[ "$name" == "Blur My Shell" && -d ~/.local/share/gnome-shell/extensions/blur-my-shell@aunetx ]] ||
      [[ "$name" == "Clipboard Indicator" && -d ~/.local/share/gnome-shell/extensions/clipboard-indicator@tudmotu.com ]] ||
      [[ "$name" == "AppIndicator Support" && -d ~/.local/share/gnome-shell/extensions/appindicatorsupport@rgcjonas.gmail.com ]] ||
@@ -238,15 +248,26 @@ install_gnome_ext() {
   
   if output=$(with_retry bash -c "$func"); then
     local elapsed=$(($(date +%s) - start))
-    printf "\r\033[K"
+    printf "\\r\\033[K"
     timing "$name" "$elapsed"
+    
+    # Auto-enable the extension if UUID is known
+    if [[ -n "$uuid" && -x "$(command -v gnome-extensions)" ]]; then
+      if gnome-extensions enable "$uuid" 2>/dev/null; then
+        success "Enabled $name ($uuid)"
+      else
+        warn "Failed to enable $name (run manually: gnome-extensions enable $uuid)"
+      fi
+    fi
+    
     SUCCEEDED+=("$name")
   else
-    printf "\n${RED}✗${NC} $name\n"
+    printf "\\n${RED}✗${NC} $name\\n"
     echo "  ${DIM}Failed: $output${NC}"
     FAILED+=("$name")
   fi
 }
+
 
 checkpoint() {
   local msg="$1"
