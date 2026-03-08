@@ -386,6 +386,7 @@ if command -v paru &>/dev/null; then
   install_aur "Music Presence" "music-presence-bin"
   install_aur "Memento" "memento"
   install_aur "Telegram Video Downloader" "tdl"
+  install_aur "Minecraft Launcher" "sklauncher"
 fi
 
 echo
