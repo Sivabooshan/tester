@@ -2,7 +2,7 @@ sudo sed -i '/^#\[multilib\]/{s/^#//;n;s/^#//}' /etc/pacman.conf &&
 sudo pacman -Syyu && 
 cd Downloads && 
 sudo pacman -S --needed --noconfirm git base-devel && 
-git clone https://github.com/Sivabooshan/tester.git && 
-cd tester && 
-chmod +x tuxmate.sh && 
-./tuxmate.sh
+git clone https://github.com/Sivabooshan/No_Maidens_UwU.git && 
+cd No_Maidens_UwU/scripts && 
+chmod +x main.sh && 
+./main.sh --dry-run
