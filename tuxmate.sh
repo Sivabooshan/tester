@@ -70,7 +70,7 @@ inscribe_scroll() {
   local ts=$(date '+%Y-%m-%d %H:%M:%S')
   echo "[$ts] - $1" | tee -a "$SACRED_SCROLLS"
 
-  if [[ "$VERBOSE_MODE" == "true" ]]; then
+  if [[ "${VERBOSE_MODE:-false}" == "true" ]]; then
     printf "${BLUE}[VERBOSE] $1${NC}\n"
   fi
 }
@@ -206,14 +206,23 @@ run_sacred_diagnostics() {
 
   # ─── ESSENTIAL TOOLS ────────────────────────────────────────
   echo
-  echo -e "${CYAN}🔧 ESSENTIAL TOOLS:${NC}"
-  local tools=(git curl zsh stow paru base-devel)
-
-  for t in "${tools[@]}"; do
+  echo -e "${CYAN}🔧 REQUIRED BEFORE RUNNING:${NC}"
+  local required_tools=(git curl)
+  for t in "${required_tools[@]}"; do
     if command -v "$t" &>/dev/null; then
       echo "  ✅ $t"
     else
-      echo "  ❌ $t"
+      echo "  ❌ $t (required)"
+    fi
+  done
+  echo
+  echo -e "${CYAN}📦 WILL BE INSTALLED BY SCRIPT:${NC}"
+  local install_tools=(zsh stow paru base-devel)
+  for t in "${install_tools[@]}"; do
+    if command -v "$t" &>/dev/null; then
+      echo "  ✅ $t (already installed)"
+    else
+      echo "  ⏳ $t (will install)"
     fi
   done
 
@@ -495,6 +504,10 @@ deploy_stow_configs() {
     whisper_warning "No dotfiles sanctuary; run acquire_dotfiles_repo first"
     return 1
   fi
+  command -v stow >/dev/null || {
+    cry_of_despair "GNU Stow not found after installation"
+    return 1
+  }
   info "Deploying configs with GNU Stow"
   if [[ "$DRY_RUN_MODE" == "true" ]]; then
     celebrate_victory "DRY RUN: Would run stow in $DOTFILES_SANCTUARY"
@@ -767,9 +780,15 @@ done
 
 if [ -f /var/lib/pacman/db.lck ]; then
   error "Pacman lock still present after ${max_wait}s."
-  echo "Another package manager may be stuck."
-  echo "If you're sure nothing is running, remove it manually:"
+  echo "Another package manager may be running or stuck."
+  echo
+  echo "Check for running pacman processes:"
+  echo "  ps aux | grep -E 'pacman|yay|paru'"
+  echo
+  echo "If no package manager is running, you may remove the lock manually:"
   echo "  sudo rm /var/lib/pacman/db.lck"
+  echo
+  echo "⚠️  Only do this if you are absolutely sure no package process is active."
   exit 1
 fi
 
@@ -779,43 +798,17 @@ info "Syncing databases..."
 with_retry sudo pacman -Syu --noconfirm >/dev/null && celebrate_victory "Synced" || whisper_warning "Sync failed, continuing..."
 
 
-echo
-checkpoint "Installing paru AUR helper"
-
-if ! command -v paru &>/dev/null; then
-  whisper_warning "Installing paru for AUR packages..."
-
-  sudo pacman -S --needed --noconfirm git base-devel
-  tmp=$(mktemp -d)
-
-  info "Cloning paru from AUR..."
-  git clone https://aur.archlinux.org/paru.git "$tmp/paru"|| {
-  error "Failed to clone paru"
+# ─────────────────────────────────────────────────────────────────────────────
+# ROOT GUARD (must be early exit)
+# ─────────────────────────────────────────────────────────────────────────────
+[ "$EUID" -eq 0 ] && {
+  error "Run as regular user, not root."
   exit 1
 }
 
-  info "Building paru (this takes ~2-5 min)..."
-
-  if ! (cd "$tmp/paru" && makepkg -si --noconfirm); then
-    error "paru installation failed"
-    rm -rf "$tmp"
-    exit 1
-  fi
-
-  rm -rf "$tmp"
-
-  if command -v paru &>/dev/null; then
-    celebrate_victory "paru installed successfully"
-  else
-    error "paru installation failed"
-    exit 1
-  fi
-fi
-
-# ════════════════════════════════════════════════════════════════════════════
-# GRAND RITUAL EXECUTION
-# ════════════════════════════════════════════════════════════════════════════
-
+# ─────────────────────────────────────────────────────────────────────────────
+# REQUIRED TOOL CHECK (preflight safety)
+# ─────────────────────────────────────────────────────────────────────────────
 for cmd in git curl sudo; do
   command -v "$cmd" &>/dev/null || {
     error "Missing required tool: $cmd"
@@ -823,77 +816,123 @@ for cmd in git curl sudo; do
   }
 done
 
+# ─────────────────────────────────────────────────────────────────────────────
+# MAIN ENTRY
+# ─────────────────────────────────────────────────────────────────────────────
 begin_sacred_ritual() {
-  # Use the flags you already defined: DRY_RUN_MODE, VERBOSE_MODE, etc.
+
   trap 'cry_of_despair "Ritual interrupted! Backup: $BACKUP_VAULT"; print_summary; exit 130' INT
 
   echo
   info "Installing $TOTAL packages ($PACMAN_TOTAL pacman + $AUR_TOTAL AUR + $EXT_TOTAL extensions)"
-  echo
 
-  echo
-  info "Installing $PACMAN_TOTAL system applications (pacman)"
-  echo
+  # ─────────────────────────────────────────────────────────────
+  # PACMAN LOCK CHECK (MOVED INSIDE RITUAL ✔)
+  # ─────────────────────────────────────────────────────────────
+  max_wait=60
+  waited=0
 
-  checkpoint "Authenticating sudo for Pacman Packages installation"
-  sudo -v
-  celebrate_victory "Sudo authenticated - no more prompts during Pacman installation"
+  while [ -f /var/lib/pacman/db.lck ] && [ $waited -lt $max_wait ]; do
+    whisper_warning "Waiting for pacman lock... (${waited}s)"
+    sleep 2
+    waited=$((waited + 2))
+  done
+
+  if [ -f /var/lib/pacman/db.lck ]; then
+    error "Pacman lock still present after ${max_wait}s."
+    exit 1
+  fi
+
+  # ─────────────────────────────────────────────────────────────
+  # PACMAN SYNC (MOVED INSIDE ✔)
+  # ─────────────────────────────────────────────────────────────
+  checkpoint "Syncing pacman database"
+  with_retry sudo pacman -Syu --noconfirm >/dev/null \
+    && celebrate_victory "Synced" \
+    || whisper_warning "Sync failed, continuing..."
+
+  # ─────────────────────────────────────────────────────────────
+  # PARU INSTALL (MOVED INSIDE ✔)
+  # ─────────────────────────────────────────────────────────────
+  checkpoint "Installing paru AUR helper"
+
+  if ! command -v paru &>/dev/null; then
+    whisper_warning "Installing paru..."
+
+    sudo pacman -S --needed --noconfirm git base-devel
+    tmp=$(mktemp -d)
+
+    info "Cloning paru..."
+    git clone https://aur.archlinux.org/paru.git "$tmp/paru" || {
+      error "Failed to clone paru"
+      exit 1
+    }
+
+    info "Building paru..."
+    if ! (cd "$tmp/paru" && makepkg -si --noconfirm); then
+      error "paru installation failed"
+      rm -rf "$tmp"
+      exit 1
+    fi
+
+    rm -rf "$tmp"
+
+    command -v paru &>/dev/null \
+      && celebrate_victory "paru installed successfully" \
+      || error "paru installation failed"
+  fi
+
+  # ─────────────────────────────────────────────────────────────
+  # USER CONFIRMATION
+  # ─────────────────────────────────────────────────────────────
   echo
-
-  inscribe_scroll "=== SACRED RITUAL COMMENCED ==="
-
-  # DIVINE CONSENT
   if [[ "$DRY_RUN_MODE" != true ]]; then
-    echo -e "${WHITE}🏴‍☠️ SACRED GIFTS:${NC}"
-    echo "• 35 pacman + 9 AUR apps (Zen Browser, ProtonVPN, Discord...)"
-    echo "• Sacred dotfiles deployment (zshrc, tmux, hyprland...)"
-    echo "• Oh My Zsh + 4 mystical plugins"
-    echo "• Automatic backups + detailed logs"
-    echo "• Optional Zsh shell transformation"
-    echo
-    echo -e "${YELLOW}⚠️  WARNINGs: Arch only, may take 30–60 minutes${NC}"
-    # 👉 AUTO-CONFIRM LOGIC
+    echo -e "${WHITE}🏴‍☠️ SACRED GIFTS READY${NC}"
+
     if [[ "$FORCE_MODE" == "true" ]]; then
       REPLY="y"
       whisper_warning "Auto-confirm enabled (--force)"
     else
-      read -p "$(echo -e "${WHITE}⚔️  Proceed with the sacred ritual? [y/N]: ${NC}")" -n1 -r
+      read -p "⚔️ Proceed? [y/N]: " -n1 -r
       echo
     fi
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-      whisper_warning "Ritual respectfully declined"
-      exit 0
-    fi
-  fi
-  
-  # Quick final check
-  echo
-  checkpoint "Running sacred diagnostics"
-  run_sacred_diagnostics  # you already have this defined
 
-  # BACKUP & DOTFILES
-  echo
-  checkpoint "Creating dotfiles backup sanctuary"
+    [[ ! $REPLY =~ ^[Yy]$ ]] && {
+      whisper_warning "Ritual cancelled"
+      exit 0
+    }
+  fi
+
+  # ─────────────────────────────────────────────────────────────
+  # DIAGNOSTICS
+  # ─────────────────────────────────────────────────────────────
+  checkpoint "Running diagnostics"
+  run_sacred_diagnostics
+
+  # ─────────────────────────────────────────────────────────────
+  # BACKUP + DOTFILES
+  # ─────────────────────────────────────────────────────────────
+  checkpoint "Backup sanctuary"
   create_backup_sanctuary
 
-  echo
-  checkpoint "Acquiring sacred dotfiles repository"
+  checkpoint "Cloning dotfiles"
   acquire_dotfiles_repo
 
+  # ─────────────────────────────────────────────────────────────
   # PACMAN PACKAGES
-  echo
-  announce_quest "Installing $PACMAN_TOTAL system applications "
+  # ─────────────────────────────────────────────────────────────
+  announce_quest "Installing pacman packages"
   for entry in "${PACMAN_PKGS[@]}"; do
     name="${entry%%:*}"
     pkg="${entry##*:}"
     install_pacman "$name" "$pkg"
   done
 
+  # ─────────────────────────────────────────────────────────────
   # AUR PACKAGES
-  echo
-  announce_quest "Acquiring $AUR_TOTAL AUR treasures..."
-
+  # ─────────────────────────────────────────────────────────────
   if command -v paru &>/dev/null && [[ "$SKIP_AUR" == "false" ]]; then
+    announce_quest "Installing AUR packages"
     for entry in "${AUR_PKGS[@]}"; do
       name="${entry%%:*}"
       pkg="${entry##*:}"
@@ -901,49 +940,32 @@ begin_sacred_ritual() {
     done
   fi
 
-# FLATPAK
-echo
-announce_quest "Setting up Flatpak & Japanese IME..."
-if ! command -v flatpak &>/dev/null; then
-  whisper_warning "Flatpak not installed, skipping Flatpak setup"
-else
-  if ! flatpak --version &>/dev/null; then
-    whisper_warning "Flatpak not fully initialized (try relogin if issues occur)"
+  # ─────────────────────────────────────────────────────────────
+  # FLATPAK
+  # ─────────────────────────────────────────────────────────────
+  announce_quest "Flatpak setup"
+  if command -v flatpak &>/dev/null; then
+    with_retry flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo \
+      && celebrate_victory "Flathub added"
   fi
-  if [[ "$DRY_RUN_MODE" == "true" ]]; then
-    whisper_warning "DRY RUN: Would run flatpak commands"
-  else
-    if with_retry flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo; then
-      celebrate_victory "Flathub remote added"
-    else
-      whisper_warning "Failed to add Flathub remote"
-    fi
-    if with_retry flatpak install -y flathub com.mattjakeman.ExtensionManager; then
-      celebrate_victory "Extension Manager installed"
-    else
-      whisper_warning "Flatpak install failed"
-    fi
-  fi
-fi
 
+  # ─────────────────────────────────────────────────────────────
   # JAPANESE INPUT
-  echo
-  checkpoint "Japanese Input Method"
-  if ! grep -q 'fcitx' ~/.pam_environment 2>/dev/null; then
-    cat >> ~/.pam_environment << 'EOF'
+  # ─────────────────────────────────────────────────────────────
+  checkpoint "IME setup"
+  PAM_FILE="$HOME/.pam_environment"
+  touch "$PAM_FILE"
 
-  # Japanese Input Method
-  GTK_IM_MODULE=fcitx
-  QT_IM_MODULE=fcitx
-  XMODIFIERS=@im=fcitx
-EOF
-    celebrate_victory "Japanese input environment configured (~/.pam_environment)"
-  else
-    skip "Japanese input environment (already configured)"
-  fi
+  updated=false
+  grep -q GTK_IM_MODULE "$PAM_FILE" || { echo 'GTK_IM_MODULE=fcitx' >> "$PAM_FILE"; updated=true; }
+  grep -q QT_IM_MODULE "$PAM_FILE" || { echo 'QT_IM_MODULE=fcitx' >> "$PAM_FILE"; updated=true; }
+  grep -q XMODIFIERS "$PAM_FILE" || { echo 'XMODIFIERS=@im=fcitx' >> "$PAM_FILE"; updated=true; }
 
-  # GNOME EXTENSIONS (re‑use your existing install_gnome_ext)
-  echo
+  $updated && celebrate_victory "IME configured"
+
+  # ─────────────────────────────────────────────────────────────
+  # GNOME EXTENSIONS
+  # ─────────────────────────────────────────────────────────────
   announce_quest "Installing GNOME Shell extensions..."
   install_gnome_ext "Blur My Shell" 'mkdir -p "$HOME/.local/share/gnome-shell/extensions" && tmpdir=$(mktemp -d) && cd "$tmpdir" && git clone https://github.com/aunetx/blur-my-shell && cd blur-my-shell && make install SHELL_VERSION_OVERRIDE="" && rm -rf "$tmpdir"'
   install_gnome_ext "Clipboard Indicator" 'rm -rf "$HOME/.local/share/gnome-shell/extensions/clipboard-indicator@tudmotu.com" && mkdir -p "$HOME/.local/share/gnome-shell/extensions" && tmpdir=$(mktemp -d) && cd "$tmpdir" && git clone https://github.com/Tudmotu/gnome-shell-extension-clipboard-indicator.git && mv gnome-shell-extension-clipboard-indicator "$HOME/.local/share/gnome-shell/extensions/clipboard-indicator@tudmotu.com" && rm -rf "$tmpdir"'
@@ -952,43 +974,31 @@ EOF
   install_gnome_ext "Weekly Commits" 'rm -rf "$HOME/.local/share/gnome-shell/extensions/weekly-commits@funinkina.is-a.dev" && mkdir -p "$HOME/.local/share/gnome-shell/extensions" && tmpdir=$(mktemp -d) && cd "$tmpdir" && git clone https://github.com/funinkina/weekly-commits.git && mv weekly-commits "$HOME/.local/share/gnome-shell/extensions/weekly-commits@funinkina.is-a.dev" && rm -rf "$tmpdir"'
   install_gnome_ext "Kimpanel" 'tmpdir=$(mktemp -d) && cd "$tmpdir" && git clone https://github.com/wengxt/gnome-shell-extension-kimpanel.git && cd gnome-shell-extension-kimpanel && ./install.sh && rm -rf "$tmpdir"'
 
-# HYPR CONFIG
-echo
-checkpoint "Hyprland configuration"
-mkdir -p "$HOME/.config/hypr"
-(
-  cd "$HOME/.config/hypr" || exit 1
-  # Ensure file exists
-  touch hyprland.conf
-  if ! grep -q 'kdeconnectd' hyprland.conf; then
-    echo "exec-once = /usr/lib/kdeconnectd" >> hyprland.conf
-  fi
-  if ! grep -q 'xdg-desktop-portal-hyprland' hyprland.conf; then
-    echo "exec-once = xdg-desktop-portal-hyprland" >> hyprland.conf
-  fi
-)
-celebrate_victory "Hyprland KDE Connect configured"
+  # ─────────────────────────────────────────────────────────────
+  # HYPRLAND
+  # ─────────────────────────────────────────────────────────────
+  checkpoint "Hyprland config"
+  mkdir -p "$HOME/.config/hypr"
+  echo "exec-once = /usr/lib/kdeconnectd" >> "$HOME/.config/hypr/hyprland.conf"
 
-  # SACRED FINALE – using your existing functions
-  echo
-  checkpoint "Summoning Oh My Zsh & Plugins"
+  # ─────────────────────────────────────────────────────────────
+  # FINAL STEPS
+  # ─────────────────────────────────────────────────────────────
+  checkpoint "Oh My Zsh"
   summon_oh_my_zsh_with_plugins
 
-  echo
-  checkpoint "Deploying sacred dotfiles via Stow"
+  checkpoint "Stow deploy"
   deploy_stow_configs
 
-  echo
-  checkpoint "Offering shell transformation"
+  checkpoint "Shell change"
   offer_shell_change
 
-  # SUMMARY + BLESSINGS
   print_summary
-  echo
-  echo -e "${PURPLE}🏴‍☠️ FINAL BLESSINGS ⚔️${NC}"
-  echo "• Backup vault: $BACKUP_VAULT"
-  echo "• Sacred scrolls: $SACRED_SCROLLS"
-  echo "• Restart shell: ${CYAN}source ~/.zshrc${NC}"
-  echo "• Full effect: Log out & back in"
-  inscribe_scroll "=== ULTIMATE RITUAL COMPLETED SUCCESSFULLY ==="
 }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# EXECUTION
+# ─────────────────────────────────────────────────────────────────────────────
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  begin_sacred_ritual "$@"
+fi
