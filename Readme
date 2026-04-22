@@ -1,4 +1,3 @@
-cd Downloads && 
 sudo pacman -S --needed --noconfirm git base-devel && 
 git clone https://github.com/Sivabooshan/No_Maidens_UwU.git && 
 cd No_Maidens_UwU/scripts && 
